@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>LBXD — Stats Generator</title>
+    <link rel="icon" type="image/png" href="media/favicon.png">
+    <link rel="apple-touch-icon" href="media/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,300&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        // Ensure page opens at the top and disable browser scroll restoration
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+        if (window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+        window.scrollTo(0, 0);
+    </script>
+    <style>
+        @keyframes lbxd-spin { to { transform: rotate(360deg); } }
+        @keyframes lbxd-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    </style>
+</head>
+
+<body>
+    <div id="root">
+        <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #14181C; color: #99AABB; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 24px;">
+            <div style="width: 52px; height: 52px; border: 3px solid rgba(0, 224, 84, 0.2); border-top-color: #00E054; border-radius: 50%; animation: lbxd-spin 0.8s linear infinite; margin-bottom: 22px;"></div>
+            <img src="media/logo.png" alt="LBXD" style="height: 48px; width: auto; margin-bottom: 12px; object-fit: contain; display: block; margin-left: auto; margin-right: auto;">
+            <div style="font-size: 13px; color: #00E054; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; animation: lbxd-pulse 1.8s ease-in-out infinite;">Starting cinematic experience…</div>
+        </div>
+    </div>
+
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- App scripts -->
+    <script src="js/model.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        window.scrollTo(0, 0);
+        window.addEventListener('load', function () {
+            window.scrollTo(0, 0);
+        });
+    </script>
+</body>
+
+</html>
