@@ -787,7 +787,15 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         ${M.profile.favoriteFilms && M.profile.favoriteFilms.length === 4 && html`
                             <div class="profile-favorites">
                                 <strong>Favorite films</strong>
-                                <div>${M.profile.favoriteFilms.map(f => html`<a href=${f.uri} target="_blank" rel="noopener" key=${f.key}>${f.name} ↗</a>`)}</div>
+                                <div class="profile-favorite-posters">
+                                    ${M.profile.favoriteFilms.map(f => html`
+                                        <${FilmPosterCard}
+                                            key=${f.key}
+                                            film=${f}
+                                            onClick=${onSelectFilm}
+                                        />
+                                    `)}
+                                </div>
                             </div>
                         `}
                     </div>
@@ -3077,8 +3085,14 @@ function App() {
             watchedFilms.filter(f => f.liked).forEach(f => priorityKeys.add(f.key));
             // 4. Any remaining watched films
             watchedFilms.forEach(f => priorityKeys.add(f.key));
+            (M.profile.favoriteFilms || []).forEach(f => priorityKeys.add(f.key));
 
-            const filmsToEnrich = watchedFilms.filter(f => priorityKeys.has(f.key)).slice(0, 300);
+            const favoriteKeys = new Set((M.profile.favoriteFilms || []).map(f => f.key));
+            const filmsToEnrich = watchedFilms
+                .slice()
+                .sort((a, b) => Number(favoriteKeys.has(b.key)) - Number(favoriteKeys.has(a.key)))
+                .filter(f => priorityKeys.has(f.key))
+                .slice(0, 120);
             let initialMeta = {};
 
             if (filmsToEnrich.length) {
@@ -3091,7 +3105,7 @@ function App() {
                             resolved = true;
                             resolve();
                         }
-                    }, 18000);
+                    }, 12000);
 
                     enrichTMDB(filmsToEnrich, TMDB_KEY, (done, metaBatch) => {
                         initialMeta = metaBatch;
@@ -3122,13 +3136,13 @@ function App() {
                     }
                 });
 
-                // Pre-decode top poster images in browser cache so they appear instantaneously
+                // Pre-decode only a few posters; the rest load lazily in the dashboard.
                 const postersToPreload = Object.values(initialMeta)
                     .map(m => m.poster)
                     .filter(Boolean)
-                    .slice(0, 35);
+                    .slice(0, 8);
                 if (typeof preloadImage === 'function') {
-                    await Promise.all(postersToPreload.map(p => preloadImage(p, 1800)));
+                    Promise.all(postersToPreload.map(p => preloadImage(p, 700))).catch(() => {});
                 }
             }
 

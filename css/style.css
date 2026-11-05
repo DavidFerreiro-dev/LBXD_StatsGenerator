@@ -255,10 +255,24 @@ img {
     margin-top: 7px;
 }
 
-.profile-favorites a {
-    padding: 4px 8px;
-    border: 1px solid var(--bd);
-    border-radius: 5px;
+.profile-favorite-posters {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(90px, 120px));
+    gap: 12px;
+}
+
+.profile-favorite-posters .film-card {
+    min-width: 0;
+}
+
+.profile-favorite-posters .film-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-favorite-posters .film-info-bar {
+    display: none;
 }
 
 .person-year-filter {
@@ -278,6 +292,11 @@ img {
 
     .profile-favorites {
         grid-column: auto;
+    }
+
+    .profile-favorite-posters {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px;
     }
 }
 

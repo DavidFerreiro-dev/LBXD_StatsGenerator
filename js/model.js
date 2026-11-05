@@ -435,6 +435,7 @@ async function enrichTMDB(films, key, onP) {
     const q = films.slice();
     const out = {};
     let done = 0;
+    const deadline = Date.now() + 11000;
 
     films.forEach(f => {
         if (_tmdbCache[f.key] && !f.tmdbSelection) {
@@ -443,7 +444,7 @@ async function enrichTMDB(films, key, onP) {
     });
 
     const worker = async () => {
-        while (q.length) {
+        while (q.length && Date.now() < deadline) {
             const f = q.shift();
             if (_tmdbCache[f.key] && !f.tmdbSelection) {
                 out[f.key] = _tmdbCache[f.key];
