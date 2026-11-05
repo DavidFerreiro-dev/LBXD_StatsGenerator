@@ -60,7 +60,7 @@ function SplashScreen({ onFinish, busyText, progress }) {
             <div class="splash-content">
                 <div class="splash-film-reel"></div>
                 <div class="splash-logo-container">
-                    <img src="media/logo.png" alt="LBXD" class="splash-logo-img" />
+                    <img src="media/logo.png" alt="LBXD Stats Generator" class="splash-logo-img" />
                 </div>
                 <div class="splash-tagline">Your cinematic universe is loading</div>
                 
@@ -611,8 +611,8 @@ function Header({ tab, setTab, onClear, user }) {
     return html`
         <header class="site-header">
             <div class="header-inner">
-                <a class="brand-logo" onClick=${() => setTab('overview')} title="LBXD — Overview">
-                    <img src="media/logo.png" alt="LBXD" class="brand-logo-img" />
+                <a class="brand-logo" onClick=${() => setTab('overview')} title="LBXD Stats Generator — Overview">
+                    <img src="media/logo.png" alt="LBXD Stats Generator" class="brand-logo-img" />
                     <span class="brand-badge">CINEMA</span>
                 </a>
 
@@ -670,7 +670,7 @@ function Footer({ setTab }) {
     return html`
         <footer class="site-footer">
             <div class="footer-nav">
-                <a href="#about" onClick=${e => { e.preventDefault(); setTab('credits'); }}>About LBXD</a>
+                <a href="#about" onClick=${e => { e.preventDefault(); setTab('credits'); }}>About LBXD Stats Generator</a>
                 <a href="#credits" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Credits</a>
                 <a href="#privacy" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Privacy</a>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener">GitHub</a>
@@ -680,7 +680,7 @@ function Footer({ setTab }) {
             </div>
             <div>LBXD Stats Generator — An independent open-source project for film lovers.</div>
             <div style=${{ fontSize: '12px', color: 'var(--dim)', marginTop: '8px' }}>
-                LBXD is not affiliated with, endorsed by, or officially connected to Letterboxd.
+                LBXD Stats Generator is not affiliated with, endorsed by, or officially connected to Letterboxd.
             </div>
         </footer>
     `;
@@ -1701,7 +1701,7 @@ function GraphEdTab({ M, onSelectFilm, onSelectPerson }) {
                 ${slide === 0 && html`
                     <div class="graphed-slide-content graphed-slide-intro">
                         <div class="graphed-intro-tag">
-                            ✨ LBXD GraphEd · Annual Review
+                            ✨ LBXD Stats Generator GraphEd · Annual Review
                         </div>
                         <h2 class="graphed-intro-title">
                             ${d.title}
@@ -2169,7 +2169,7 @@ function GraphEdTab({ M, onSelectFilm, onSelectPerson }) {
 function CreditsTab() {
     return html`
         <div class="credits-wrapper">
-            <h2 style=${{ fontFamily: 'var(--serif)', fontSize: '32px', textAlign: 'center', marginBottom: '8px' }}>Credits & About LBXD</h2>
+            <h2 style=${{ fontFamily: 'var(--serif)', fontSize: '32px', textAlign: 'center', marginBottom: '8px' }}>Credits & About LBXD Stats Generator</h2>
             <p style=${{ textAlign: 'center', color: 'var(--mut)', marginBottom: '36px' }}>
                 An independent open-source project dedicated to cinema lovers.
             </p>
@@ -2188,7 +2188,7 @@ function CreditsTab() {
                     and create your own yearly movie recap.
                 </p>
                 <p>
-                    LBXD is not affiliated with Letterboxd. It is an independent project built by a film lover, for film lovers.
+                    LBXD Stats Generator is not affiliated with Letterboxd. It is an independent project built by a film lover, for film lovers.
                 </p>
             </div>
 
@@ -2198,14 +2198,14 @@ function CreditsTab() {
                     <h3>Made possible by Letterboxd</h3>
                 </div>
                 <p>
-                    Letterboxd is the ultimate social network for film enthusiasts. LBXD exists thanks to
+                    Letterboxd is the ultimate social network for film enthusiasts. LBXD Stats Generator exists thanks to
                     Letterboxd's vibrant community and the ability for members to export their personal data openly and transparently.
                 </p>
                 <a href="https://letterboxd.com" target="_blank" rel="noopener" class="credits-badge-link">
                     <span>🎬</span> letterboxd.com ↗
                 </a>
                 <div class="disclaimer-note">
-                    LBXD is an independent project and is not affiliated with, endorsed by, or officially connected to Letterboxd.
+                    LBXD Stats Generator is an independent project and is not affiliated with, endorsed by, or officially connected to Letterboxd.
                 </div>
             </div>
 
@@ -2236,7 +2236,7 @@ function CreditsTab() {
                     crafted with care for the global film community.
                 </p>
                 <p>
-                    LBXD is open source. Its full source code is publicly available on GitHub for anyone to explore, contribute to, or inspect.
+                    LBXD Stats Generator is open source. Its full source code is publicly available on GitHub for anyone to explore, contribute to, or inspect.
                 </p>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener" class="btn btn-primary" style=${{ display: 'inline-flex' }}>
                     View David Ferreiro on GitHub ↗
@@ -2255,7 +2255,7 @@ function CreditsTab() {
                     <strong>100% Local in your browser:</strong> Your ZIP and CSV files are decompressed and parsed exclusively inside your browser's local memory. No personal viewing data, dates, reviews or ratings are ever sent to external servers.
                 </p>
                 <p>
-                    <strong>No persistent tracking:</strong> LBXD does not store your film data in external databases. When you close the tab or click "Clear Data", your session is wiped clean.
+                    <strong>No persistent tracking:</strong> LBXD Stats Generator does not store your film data in external databases. When you close the tab or click "Clear Data", your session is wiped clean.
                 </p>
                 <p>
                     <strong>TMDB Enrichment:</strong> When fetching posters and metadata, only film titles and release years are queried against TMDB's public API, never your personal user information.
@@ -2719,7 +2719,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
             <header class="site-header" style=${{ position: 'relative', zIndex: 10 }}>
                 <div class="header-inner">
                     <span class="brand-logo">
-                        <img src="media/logo.png" alt="LBXD" class="brand-logo-img" />
+                        <img src="media/logo.png" alt="LBXD Stats Generator" class="brand-logo-img" />
                         <span class="brand-badge">CINEMA</span>
                     </span>
 
@@ -2745,7 +2745,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
                     </div>
 
                     <div class="landing-logo-container">
-                        <img src="media/logo.png" alt="LBXD — Stats Generator" class="landing-hero-logo" />
+                        <img src="media/logo.png" alt="LBXD Stats Generator" class="landing-hero-logo" />
                     </div>
                     <div class="landing-subtitle"></div>
 
@@ -2867,7 +2867,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
                         <span class="landing-teaser-badge">✦ Preview</span>
                         <h2 class="landing-teaser-title">Visual Showcase · What you will discover with your data</h2>
                         <p class="landing-teaser-sub">
-                            A glimpse of the rich film cards, actors, and stats generated by LBXD once your data is imported.
+                            A glimpse of the rich film cards, actors, and stats generated by LBXD Stats Generator once your data is imported.
                         </p>
                     </div>
 
@@ -2979,7 +2979,7 @@ function Diagnostic({ M, onGo, onBack }) {
             <header class="site-header">
                 <div class="header-inner">
                     <span class="brand-logo">
-                        <img src="media/logo.png" alt="LBXD" class="brand-logo-img" />
+                        <img src="media/logo.png" alt="LBXD Stats Generator" class="brand-logo-img" />
                         <span class="brand-badge">SUMMARY</span>
                     </span>
                 </div>

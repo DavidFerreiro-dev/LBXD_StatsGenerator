@@ -2,7 +2,7 @@
   <img src="media/logo.png" alt="LBXD Stats Generator Logo" width="320" />
 </p>
 
-<h1 align="center">LBXD — Cinema Stats Generator & Annual GraphEd</h1>
+<h1 align="center">LBXD Stats Generator — Cinema Stats & Annual GraphEd</h1>
 
 <p align="center">
   <strong>Your cinematic life analyzed with the visual atmosphere, precision, and soul of Letterboxd.</strong>
@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="#features"><img src="https://img.shields.io/badge/Platform-Web%20Browser-00E054?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Platform"></a>
-  <a href="#privacy"><img src="https://img.shields.io/badge/Privacy-100%25%20Local%20%26%20Private-00E054?style=for-the-badge&logo=privateinternetaccess&logoColor=white" alt="Privacy"></a>
+  <a href="#privacy"><img src="https://img.shields.io/badge/Privacy-Browser%20Processing%20%26%20Private-00E054?style=for-the-badge&logo=privateinternetaccess&logoColor=white" alt="Privacy"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/React-18.3-202830?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"></a>
   <a href="#credits"><img src="https://img.shields.io/badge/Metadata-TMDB%20API-01B4E4?style=for-the-badge&logo=themoviedatabase&logoColor=white" alt="TMDB"></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-FF8000?style=for-the-badge" alt="License"></a>
@@ -28,9 +28,12 @@ Built from the ground up to honor Letterboxd's signature dark aesthetic, typogra
 
 ## ✨ What It Has (Key Features)
 
-### 🔒 100% Local & Privacy-First
-- **Zero Server Storage**: Your viewing diary, ratings, watchlist, and comments are parsed exclusively in your browser memory using Web APIs (`JSZip` and `PapaParse`).
-- **No Account Linking Required**: No username or password needed; your data stays entirely on your device.
+### 🔒 Letterboxd Export Data & Privacy
+- **Your data comes from Letterboxd**: LBXD Stats Generator reads the ZIP/CSV export that you download from your own Letterboxd account. It does not connect to your account and never asks for your Letterboxd password.
+- **Processed in your browser**: The exported diary, ratings, reviews, profile and watchlist are decompressed and analyzed in the browser using `JSZip` and `PapaParse`.
+- **Not stored by LBXD Stats Generator**: The project has no backend, user database or cloud sync. We do not upload, retain or sell your personal Letterboxd data. Refreshing or closing the page clears the in-memory session.
+- **External metadata requests**: To display posters and film metadata, LBXD Stats Generator sends title and release-year searches to TMDB. Your diary, ratings, reviews, profile and watch history are not sent to TMDB.
+- **Your responsibility**: The downloaded Letterboxd ZIP remains under your control. Store or delete that file according to your own preferences.
 
 ### 📊 Deep Cinema Statistics & Viewing Records
 - **Core KPIs**: Total unique titles, logged viewings, rewatch tally, personal star average, and estimated total watch time (in hours and days).
@@ -74,11 +77,11 @@ Built from the ground up to honor Letterboxd's signature dark aesthetic, typogra
 
 ## 🚫 What It Does Not Have (Scope & Limitations)
 
-To maintain privacy, lightness, and security, LBXD deliberately avoids certain features:
+To maintain privacy, lightness, and security, LBXD Stats Generator deliberately avoids certain features:
 
 | Limitation | Reason & Context |
 | :--- | :--- |
-| **No Cloud Sync / Database** | All processing is 100% ephemeral in the browser's local state. Nothing is sent to or stored on private servers. |
+| **No Cloud Sync / Database** | LBXD Stats Generator has no backend or private server that stores your export. Your Letterboxd data is processed in the browser and kept only in the current in-memory session. |
 | **No Direct Letterboxd Account Write** | Letterboxd does not provide a public write API for standard members. The app operates as an analysis layer on exported data. |
 | **No Heavy Server Dependencies** | Pure client-side static application. No Node.js backend or database server is required to run it in production. |
 | **No Dark/Light Mode Toggle** | Locked exclusively in dark mode (`#14181C`) to preserve the authentic, immersive Letterboxd cinematic contrast. |
