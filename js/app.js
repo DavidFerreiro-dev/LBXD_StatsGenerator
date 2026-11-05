@@ -742,29 +742,6 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         <div class="stat-label">Unique Films</div>
                     </div>
 
-                    ${M.profile && html`
-                        <div class="profile-overview-card">
-                            <div>
-                                <div class="profile-overview-kicker">Letterboxd profile</div>
-                                <h2>${[M.profile.givenName, M.profile.familyName].filter(Boolean).join(' ') || (M.profile.user ? '@' + M.profile.user : 'Your profile')}</h2>
-                                ${M.profile.bio && html`<div class="profile-overview-bio" dangerouslySetInnerHTML=${{ __html: formatReviewHtml(M.profile.bio) }}></div>`}
-                            </div>
-                            <div class="profile-overview-meta">
-                                ${M.profile.user && html`<span><strong>Username</strong> @${M.profile.user}</span>`}
-                                ${M.profile.location && html`<span><strong>Location</strong> ${M.profile.location}</span>`}
-                                ${M.profile.pronoun && html`<span><strong>Pronouns</strong> ${M.profile.pronoun}</span>`}
-                                ${M.profile.joined && html`<span><strong>Joined</strong> ${M.profile.joined}</span>`}
-                                ${M.profile.website && html`<a href=${M.profile.website} target="_blank" rel="noopener"><strong>Custom link</strong> ↗</a>`}
-                                ${M.profile.email && html`<a href=${`mailto:${M.profile.email}`}><strong>Email</strong> ${M.profile.email}</a>`}
-                            </div>
-                            ${M.profile.favoriteFilms && M.profile.favoriteFilms.length > 0 && html`
-                                <div class="profile-favorites">
-                                    <strong>Favorite films</strong>
-                                    <div>${M.profile.favoriteFilms.map((url, i) => html`<a href=${url} target="_blank" rel="noopener" key=${i}>Film ${i + 1} ↗</a>`)}</div>
-                                </div>
-                            `}
-                        </div>
-                    `}
                     <div class="stat-card">
                         <div class="stat-value">${S.viewings}</div>
                         <div class="stat-label">Total Viewings</div>
@@ -786,6 +763,35 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         <div class="stat-label">Longest Daily Streak</div>
                     </div>
                 </div>
+
+                ${M.profile && html`
+                    <div class="profile-overview-card">
+                        <div class="profile-overview-heading">
+                            <div class="profile-overview-kicker">Letterboxd profile</div>
+                            <h2>${[M.profile.givenName, M.profile.familyName].filter(Boolean).join(' ') || (M.profile.user ? '@' + M.profile.user : 'Your profile')}</h2>
+                        </div>
+                        <div class="profile-overview-meta">
+                            ${M.profile.user && html`<span><strong>Username</strong> @${M.profile.user}</span>`}
+                            ${M.profile.location && html`<span><strong>Location</strong> ${M.profile.location}</span>`}
+                            ${M.profile.pronoun && html`<span><strong>Pronouns</strong> ${M.profile.pronoun}</span>`}
+                            ${M.profile.joined && html`<span><strong>Joined</strong> ${M.profile.joined}</span>`}
+                            ${M.profile.website && html`<a href=${M.profile.website} target="_blank" rel="noopener"><strong>Custom link</strong> ↗</a>`}
+                            ${M.profile.email && html`<a href=${`mailto:${M.profile.email}`}><strong>Email</strong> ${M.profile.email}</a>`}
+                        </div>
+                        ${M.profile.bio && html`
+                            <div class="profile-overview-bio">
+                                <div class="profile-overview-label">Bio</div>
+                                <div dangerouslySetInnerHTML=${{ __html: formatReviewHtml(M.profile.bio) }}></div>
+                            </div>
+                        `}
+                        ${M.profile.favoriteFilms && M.profile.favoriteFilms.length === 4 && html`
+                            <div class="profile-favorites">
+                                <strong>Favorite films</strong>
+                                <div>${M.profile.favoriteFilms.map(f => html`<a href=${f.uri} target="_blank" rel="noopener" key=${f.key}>${f.name} ↗</a>`)}</div>
+                            </div>
+                        `}
+                    </div>
+                `}
 
                 <!-- Dual Visual Charts -->
                 <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', margin: '28px 0' }}>

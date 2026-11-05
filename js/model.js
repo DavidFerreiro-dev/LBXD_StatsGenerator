@@ -338,6 +338,11 @@ async function buildModel(files, progress) {
 
     const prof = (byType.profile || [])[0] || {};
     const films = [...F.values()].filter(f => f.watched);
+    const favoriteFilmUrls = (prof['Favorite Films'] || '').split(/\s*,\s*/).filter(Boolean);
+    const normalizeUrl = value => norm(value).replace(/\/+$/, '').toLowerCase();
+    const favoriteFilms = favoriteFilmUrls.length === 4
+        ? favoriteFilmUrls.map(url => films.find(f => normalizeUrl(f.uri) === normalizeUrl(url))).filter(Boolean)
+        : [];
     const dated = entries.filter(e => e.date);
 
     const sameDay = {};
@@ -385,7 +390,7 @@ async function buildModel(files, progress) {
             email: prof['Email Address'] || '',
             bio: prof.Bio || '',
             pronoun: prof.Pronoun || '',
-            favoriteFilms: (prof['Favorite Films'] || '').split(/\s*,\s*/).filter(Boolean)
+            favoriteFilms: favoriteFilms.length === 4 ? favoriteFilms : []
         },
         diag
     };
