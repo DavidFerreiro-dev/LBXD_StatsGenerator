@@ -2357,11 +2357,11 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
     useEffect(() => {
         const remaining = M0.films.filter(f => f.watched && !meta[f.key]);
         if (remaining.length) {
-            enrichTMDB(remaining, TMDB_KEY).then(res => {
-                if (res && Object.keys(res).length) {
-                    setMeta(m => ({ ...m, ...res }));
+            enrichTMDB(remaining, TMDB_KEY, (_, batch) => {
+                if (batch && Object.keys(batch).length) {
+                    setMeta(m => ({ ...m, ...batch }));
                 }
-            }).catch(() => { });
+            }).catch(() => {});
         }
     }, [M0]);
 
@@ -3163,7 +3163,7 @@ function App() {
                 .slice()
                 .sort((a, b) => Number(favoriteKeys.has(b.key)) - Number(favoriteKeys.has(a.key)))
                 .filter(f => priorityKeys.has(f.key))
-                .slice(0, 120);
+                .slice(0, 16);
             let initialMeta = {};
 
             if (filmsToEnrich.length) {
@@ -3176,7 +3176,7 @@ function App() {
                             resolved = true;
                             resolve();
                         }
-                    }, 12000);
+                    }, 10000);
 
                     enrichTMDB(filmsToEnrich, TMDB_KEY, (done, metaBatch) => {
                         initialMeta = metaBatch;

@@ -405,14 +405,21 @@ const _personCache = {};
 const _personBioCache = {};
 
 async function fetchJSONWithTimeout(url, options = {}, timeoutMs = 10000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-        const response = await fetch(url, { ...options, signal: controller.signal });
-        return await response.json();
-    } finally {
-        clearTimeout(timer);
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            return await response.json();
+        } catch (error) {
+            lastError = error;
+            if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 250));
+        } finally {
+            clearTimeout(timer);
+        }
     }
+    throw lastError;
 }
 
 function cleanExact(str) {
@@ -435,7 +442,6 @@ async function enrichTMDB(films, key, onP) {
     const q = films.slice();
     const out = {};
     let done = 0;
-    const deadline = Date.now() + 11000;
 
     films.forEach(f => {
         if (_tmdbCache[f.key] && !f.tmdbSelection) {
@@ -444,7 +450,7 @@ async function enrichTMDB(films, key, onP) {
     });
 
     const worker = async () => {
-        while (q.length && Date.now() < deadline) {
+        while (q.length) {
             const f = q.shift();
             if (_tmdbCache[f.key] && !f.tmdbSelection) {
                 out[f.key] = _tmdbCache[f.key];
@@ -684,7 +690,7 @@ async function enrichTMDB(films, key, onP) {
         }
     };
 
-    await Promise.all([worker(), worker(), worker(), worker(), worker(), worker(), worker(), worker()]);
+    await Promise.all([worker(), worker(), worker(), worker()]);
     return out;
 }
 
