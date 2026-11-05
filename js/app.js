@@ -786,14 +786,17 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         `}
                         ${M.profile.favoriteFilms && M.profile.favoriteFilms.length === 4 && html`
                             <div class="profile-favorites">
-                                <strong>Favorite films</strong>
+                                <div class="profile-favorites-heading">
+                                    <span class="profile-favorites-icon">♥</span>
+                                    <strong>Favorite films</strong>
+                                    <span class="profile-favorites-rule"></span>
+                                </div>
                                 <div class="profile-favorite-posters">
                                     ${M.profile.favoriteFilms.map(f => html`
-                                        <${FilmPosterCard}
-                                            key=${f.key}
-                                            film=${f}
-                                            onClick=${onSelectFilm}
-                                        />
+                                        <div class="profile-favorite-item" key=${f.key}>
+                                            <div class="profile-favorite-number">${M.profile.favoriteFilms.indexOf(f) + 1}</div>
+                                            <${FilmPosterCard} film=${f} onClick=${onSelectFilm} />
+                                        </div>
                                     `)}
                                 </div>
                             </div>

@@ -244,35 +244,85 @@ img {
 
 .profile-favorites {
     grid-column: 1 / -1;
+    margin-top: 2px;
+    padding-top: 17px;
+    border-top: 1px solid var(--bd);
     color: var(--mut);
     font-size: 12px;
 }
 
-.profile-favorites > div {
+.profile-favorites-heading {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
-    margin-top: 7px;
+    margin-bottom: 13px;
+    color: var(--tx);
+    font-size: 13px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.profile-favorites-icon {
+    color: var(--o);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.profile-favorites-rule {
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, var(--o), transparent);
 }
 
 .profile-favorite-posters {
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(90px, 120px));
-    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
 }
 
-.profile-favorite-posters .film-card {
+.profile-favorite-item {
+    position: relative;
+    min-width: 0;
+    padding: 10px 10px 12px;
+    border: 1px solid rgba(255, 128, 0, .35);
+    border-radius: 9px;
+    background: linear-gradient(165deg, rgba(255, 128, 0, .12), var(--surface));
+    box-shadow: 0 5px 16px rgba(0, 0, 0, .22);
+}
+
+.profile-favorite-item .film-card {
     min-width: 0;
 }
 
-.profile-favorite-posters .film-title-text {
+.profile-favorite-number {
+    width: 24px;
+    height: 24px;
+    margin: -4px 0 5px -4px;
+    border-radius: 50%;
+    background: var(--o);
+    color: #1b1208;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 24px;
+    text-align: center;
+}
+
+.profile-favorite-item .film-title-text {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--tx);
+    font-weight: 700;
 }
 
-.profile-favorite-posters .film-info-bar {
-    display: none;
+.profile-favorite-item .film-poster-wrap {
+    aspect-ratio: 2 / 3;
+}
+
+.profile-favorite-item .film-info-bar {
+    display: flex;
+    padding-top: 7px;
 }
 
 .person-year-filter {
@@ -295,8 +345,15 @@ img {
     }
 
     .profile-favorite-posters {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 7px;
+        gap: 8px;
+    }
+
+    .profile-favorite-item {
+        padding: 7px 7px 9px;
+    }
+
+    .profile-favorite-item .film-title-text {
+        font-size: 11px;
     }
 }
 
