@@ -674,6 +674,7 @@ function Footer({ setTab }) {
                 <a href="#credits" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Credits</a>
                 <a href="#privacy" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Privacy</a>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener">Repository</a>
                 <a href="https://letterboxd.com" target="_blank" rel="noopener">Letterboxd</a>
                 <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>
             </div>
@@ -2238,7 +2239,10 @@ function CreditsTab() {
                     LBXD is open source. Its full source code is publicly available on GitHub for anyone to explore, contribute to, or inspect.
                 </p>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener" class="btn btn-primary" style=${{ display: 'inline-flex' }}>
-                    View source code on GitHub ↗
+                    View David Ferreiro on GitHub ↗
+                </a>
+                <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener" class="btn btn-ghost" style=${{ display: 'inline-flex', marginLeft: '8px' }}>
+                    View LBXD repository ↗
                 </a>
             </div>
 
