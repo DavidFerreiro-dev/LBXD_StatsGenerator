@@ -361,10 +361,11 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson, onC
     `;
 }
 
-function PersonModal({ person, onClose, films, onSelectFilm }) {
+function PersonModal({ person, onClose, films, entries, onSelectFilm }) {
     if (!person) return null;
 
     const [details, setDetails] = useState(null);
+    const [watchedYear, setWatchedYear] = useState('');
 
     useEffect(() => {
         let active = true;
@@ -396,6 +397,17 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
 
     const ratedWorks = personWorks.filter(f => f.rating != null);
     const userAvg = ratedWorks.length ? avg(ratedWorks.map(f => f.rating)) : null;
+    const watchedYears = useMemo(() => [...new Set((entries || [])
+        .filter(e => e.date && personWorks.some(f => f.key === e.key))
+        .map(e => e.date.slice(0, 4))
+        .filter(Boolean))].sort((a, b) => b.localeCompare(a)), [entries, personWorks]);
+    const displayedWorks = useMemo(() => {
+        if (!watchedYear) return personWorks;
+        const keys = new Set((entries || [])
+            .filter(e => e.date && e.date.startsWith(watchedYear))
+            .map(e => e.key));
+        return personWorks.filter(f => keys.has(f.key));
+    }, [entries, personWorks, watchedYear]);
 
     const photoSrc = (details && details.photo) || person.photo;
 
@@ -417,7 +429,7 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
                         <h2 class="person-name-big">${person.n}</h2>
                         
                         <div style=${{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '6px', fontSize: '14px', color: 'var(--mut)' }}>
-                            <span><strong>${personWorks.length}</strong> titles watched</span>
+                            <span><strong>${displayedWorks.length}</strong> titles watched${watchedYear ? ` in ${watchedYear}` : ''}</span>
                             ${userAvg != null && html`<span>Your average: <strong style=${{ color: COL.g }}>${fmt(userAvg)}★</strong></span>`}
                             ${details && details.birthday && html`<span>Born: ${details.birthday}</span>`}
                             ${details && details.placeOfBirth && html`<span>Birthplace: ${details.placeOfBirth}</span>`}
@@ -431,12 +443,22 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
 
                 <div style=${{ padding: '24px 28px' }}>
                     <div class="poster-shelf-header" style=${{ marginBottom: '14px' }}>
-                        <h3 class="poster-shelf-title">Watched Works with ${person.n} (${personWorks.length})</h3>
-                        <span class="poster-shelf-count">Sorted by your rating</span>
+                        <h3 class="poster-shelf-title">Watched Works with ${person.n} (${displayedWorks.length})</h3>
+                        <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <select
+                                class="person-year-filter"
+                                value=${watchedYear}
+                                onChange=${e => setWatchedYear(e.target.value)}
+                            >
+                                <option value="">All viewing years</option>
+                                ${watchedYears.map(year => html`<option value=${year} key=${year}>Viewed in ${year}</option>`)}
+                            </select>
+                            <span class="poster-shelf-count">Sorted by your rating</span>
+                        </div>
                     </div>
 
                     <div class="poster-grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
-                        ${personWorks.map(f => html`
+                        ${displayedWorks.map(f => html`
                             <${FilmPosterCard}
                                 key=${f.key}
                                 film=${f}
@@ -719,6 +741,30 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         <div class="stat-value">${S.n}</div>
                         <div class="stat-label">Unique Films</div>
                     </div>
+
+                    ${M.profile && html`
+                        <div class="profile-overview-card">
+                            <div>
+                                <div class="profile-overview-kicker">Letterboxd profile</div>
+                                <h2>${[M.profile.givenName, M.profile.familyName].filter(Boolean).join(' ') || (M.profile.user ? '@' + M.profile.user : 'Your profile')}</h2>
+                                ${M.profile.bio && html`<div class="profile-overview-bio" dangerouslySetInnerHTML=${{ __html: formatReviewHtml(M.profile.bio) }}></div>`}
+                            </div>
+                            <div class="profile-overview-meta">
+                                ${M.profile.user && html`<span><strong>Username</strong> @${M.profile.user}</span>`}
+                                ${M.profile.location && html`<span><strong>Location</strong> ${M.profile.location}</span>`}
+                                ${M.profile.pronoun && html`<span><strong>Pronouns</strong> ${M.profile.pronoun}</span>`}
+                                ${M.profile.joined && html`<span><strong>Joined</strong> ${M.profile.joined}</span>`}
+                                ${M.profile.website && html`<a href=${M.profile.website} target="_blank" rel="noopener"><strong>Custom link</strong> ↗</a>`}
+                                ${M.profile.email && html`<a href=${`mailto:${M.profile.email}`}><strong>Email</strong> ${M.profile.email}</a>`}
+                            </div>
+                            ${M.profile.favoriteFilms && M.profile.favoriteFilms.length > 0 && html`
+                                <div class="profile-favorites">
+                                    <strong>Favorite films</strong>
+                                    <div>${M.profile.favoriteFilms.map((url, i) => html`<a href=${url} target="_blank" rel="noopener" key=${i}>Film ${i + 1} ↗</a>`)}</div>
+                                </div>
+                            `}
+                        </div>
+                    `}
                     <div class="stat-card">
                         <div class="stat-value">${S.viewings}</div>
                         <div class="stat-label">Total Viewings</div>
@@ -2325,6 +2371,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                 <${PersonModal}
                     person=${selectedPerson}
                     films=${M.films}
+                    entries=${M.entries}
                     onClose=${() => setSelectedPerson(null)}
                     onSelectFilm=${setSelectedFilm}
                 />
@@ -3046,7 +3093,7 @@ function App() {
                         setSt(s => ({
                             ...s,
                             progress: pct,
-                            busy: `Downloading high-resolution posters and metadata (${done}/${filmsToEnrich.length})…`
+                            busy: `Downloading posters and metadata (${done}/${filmsToEnrich.length})…`
                         }));
                         if (done >= filmsToEnrich.length && !resolved) {
                             resolved = true;

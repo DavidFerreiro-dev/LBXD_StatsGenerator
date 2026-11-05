@@ -166,6 +166,99 @@ img {
     color: var(--red);
 }
 
+.profile-overview-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr);
+    gap: 18px 28px;
+    margin: 28px 0;
+    padding: 22px 24px;
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--pn), var(--surface));
+}
+
+.profile-overview-kicker {
+    color: var(--g);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.profile-overview-card h2 {
+    margin-top: 3px;
+    font-family: var(--serif);
+    font-size: 25px;
+}
+
+.profile-overview-bio {
+    margin-top: 10px;
+    color: var(--mut);
+    font-size: 13px;
+}
+
+.profile-overview-bio blockquote {
+    border-left: 3px solid var(--g);
+    padding-left: 10px;
+}
+
+.profile-overview-meta {
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    color: var(--mut);
+    font-size: 12px;
+}
+
+.profile-overview-meta strong,
+.profile-favorites strong {
+    color: var(--tx);
+}
+
+.profile-overview-meta a,
+.profile-favorites a {
+    color: var(--g);
+}
+
+.profile-favorites {
+    grid-column: 1 / -1;
+    color: var(--mut);
+    font-size: 12px;
+}
+
+.profile-favorites > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 7px;
+}
+
+.profile-favorites a {
+    padding: 4px 8px;
+    border: 1px solid var(--bd);
+    border-radius: 5px;
+}
+
+.person-year-filter {
+    max-width: 150px;
+    border: 1px solid var(--bd);
+    border-radius: 5px;
+    background: var(--surface);
+    padding: 5px 7px;
+    color: var(--tx);
+    font-size: 11px;
+}
+
+@media (max-width: 700px) {
+    .profile-overview-card {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-favorites {
+        grid-column: auto;
+    }
+}
+
 /* ==========================================================================
    Splash / Welcome Loading Screen
    ========================================================================== */
