@@ -96,7 +96,6 @@ function FilmPosterCard({ film, sub, onClick }) {
                     </div>`
         }
                 
-                ${film.isTv && html`<div class="film-tv-badge">SERIES</div>`}
                 ${film.liked && html`<div class="film-heart-badge">♥</div>`}
             </div>
             
@@ -152,8 +151,12 @@ function PosterShelf({ title, count, list, sub, onSelectFilm, why, extraAction }
    Modals: Film Detail & Person Detail
    ========================================================================== */
 
-function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
+function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson, onChangeWork }) {
     if (!film) return null;
+    const [workQuery, setWorkQuery] = useState(film.name);
+    const [workResults, setWorkResults] = useState([]);
+    const [workSearching, setWorkSearching] = useState(false);
+    const [workError, setWorkError] = useState('');
 
     const filmEntries = useMemo(() => {
         return (entries || []).filter(e => e.key === film.key);
@@ -167,6 +170,19 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
     const rewatchesCount = useMemo(() => {
         return filmEntries.filter(e => e.isRewatch || e.rewatch).length;
     }, [filmEntries]);
+
+    const searchWorks = async () => {
+        setWorkSearching(true);
+        setWorkError('');
+        try {
+            const results = await searchTMDBCandidates(workQuery.trim(), film.year);
+            setWorkResults(results);
+        } catch (e) {
+            setWorkError('No se pudieron consultar las obras en TMDB.');
+        } finally {
+            setWorkSearching(false);
+        }
+    };
 
     useEffect(() => {
         const onKey = e => e.key === 'Escape' && onClose();
@@ -216,6 +232,31 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
                         >
                             ${film.isTv ? '🎬 Switch to Film' : '📺 Switch to TV Series'}
                         </button>
+
+                        <div class="work-correction-box">
+                            <button class="btn btn-ghost btn-sm" style=${{ width: '100%', fontSize: '11.5px' }} onClick=${searchWorks}>
+                                Cambiar obra
+                            </button>
+                            <input
+                                class="work-correction-input"
+                                value=${workQuery}
+                                onInput=${e => setWorkQuery(e.target.value)}
+                                onKeyDown=${e => e.key === 'Enter' && searchWorks()}
+                                placeholder="Buscar obra en TMDB"
+                            />
+                            ${workSearching && html`<div class="work-correction-status">Buscando…</div>`}
+                            ${workError && html`<div class="work-correction-error">${workError}</div>`}
+                            ${workResults.length > 0 && html`
+                                <div class="work-correction-results">
+                                    ${workResults.map(result => html`
+                                        <button class="work-correction-result" key=${`${result.media_type}-${result.id}`} onClick=${() => onChangeWork && onChangeWork(film, result)}>
+                                            <span>${result.title || result.name}</span>
+                                            <small>${(result.release_date || '').slice(0, 4) || '—'} · ${result.media_type === 'tv' ? 'TV' : 'Película'}</small>
+                                        </button>
+                                    `)}
+                                </div>
+                            `}
+                        </div>
                     </div>
 
                     <div class="modal-body-col">
@@ -227,7 +268,6 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
                         </div>
 
                         <div class="modal-meta-row">
-                            ${film.isTv && html`<span style=${{ background: 'var(--b)', color: '#061520', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>SERIES</span>`}
                             ${film.year && html`<span>${film.year}</span>`}
                             ${film.runtime && html`<span>· ${film.runtime} min ${film.isTv ? '/ ep' : ''}</span>`}
                             ${film.seasons && html`<span>· ${film.seasons} ${film.seasons === 1 ? 'season' : 'seasons'}</span>`}
@@ -539,7 +579,6 @@ function Header({ tab, setTab, onClear, user }) {
     const navItems = [
         { id: 'overview', label: 'Overview' },
         { id: 'films', label: 'Films' },
-        { id: 'tv', label: 'TV Shows' },
         { id: 'diary', label: 'Diary' },
         { id: 'ratings', label: 'Ratings' },
         { id: 'stats', label: 'Stats' },
@@ -581,7 +620,6 @@ function MobileNav({ tab, setTab }) {
     const items = [
         { id: 'overview', icon: '📊', label: 'Overview' },
         { id: 'films', icon: '🎬', label: 'Films' },
-        { id: 'tv', icon: '📺', label: 'TV' },
         { id: 'diary', icon: '📅', label: 'Diary' },
         { id: 'ratings', icon: '★', label: 'Ratings' },
         { id: 'stats', icon: '👥', label: 'Stats' },
@@ -655,8 +693,8 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                             <button class="btn btn-primary" onClick=${() => setTab('graphed')}>
                                 ✨ View Annual GraphEd
                             </button>
-                            <button class="btn btn-ghost" onClick=${() => setTab('tv')}>
-                                📺 TV Shows (${S.showsCount})
+                            <button class="btn btn-ghost" onClick=${() => setTab('films')}>
+                                🎬 All films (${S.n})
                             </button>
                         </div>
                     </div>
@@ -768,7 +806,7 @@ function FilmsTab({ V, S, onSelectFilm }) {
 
     const filteredFilms = useMemo(() => {
         const q = search.toLowerCase().trim();
-        let list = V.films.filter(f => !f.isTv && (!q || f.name.toLowerCase().includes(q)));
+        let list = V.films.filter(f => !q || f.name.toLowerCase().includes(q));
         list = list.slice().sort((a, b) => {
             let va = a[sort[0]], vb = b[sort[0]];
             if (sort[0] === 'views') {
@@ -792,7 +830,7 @@ function FilmsTab({ V, S, onSelectFilm }) {
 
             <${PosterShelf}
                 title="Most Watched Films"
-                list=${S.mostSeen.filter(f => !f.isTv).slice(0, 14)}
+                list=${S.mostSeen.slice(0, 14)}
                 sub=${f => (S.vc.get(f.key) || 0) + ' viewings'}
                 onSelectFilm=${onSelectFilm}
             />
@@ -1004,7 +1042,7 @@ function DiaryTab({ V, S, onSelectFilm }) {
                                         <td style=${{ padding: '12px 10px', color: 'var(--mut)' }}>${e.date}</td>
                                         <td style=${{ padding: '12px 10px', fontWeight: 600 }}>${f.name}</td>
                                         <td style=${{ padding: '12px 10px', color: 'var(--mut)' }}>${f.year || '—'}</td>
-                                        <td style=${{ padding: '12px 10px' }}>${f.isTv ? html`<span style=${{ background: 'var(--b)', color: '#061520', fontSize: '10px', padding: '2px 5px', borderRadius: '3px', fontWeight: 800 }}>SERIES</span>` : 'Film'}</td>
+                                        <td style=${{ padding: '12px 10px' }}>Film</td>
                                         <td style=${{ padding: '12px 10px', color: COL.g, fontWeight: 700 }}>${stars(e.rating)}</td>
                                         <td style=${{ padding: '12px 10px', color: 'var(--mut)' }}>${(e.isRewatch || e.rewatch) ? '↻ Rewatch' : ''}</td>
                                     </tr>
@@ -2236,8 +2274,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                     <div style=${{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '18px 0 6px', flexWrap: 'wrap', gap: '10px' }}>
                         <div class="media-filter-pills">
                             <button class=${`media-filter-btn ${q.mediaType === 'all' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'all' })}>All (${M.films.length})</button>
-                            <button class=${`media-filter-btn ${q.mediaType === 'movie' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'movie' })}>Films (${S.moviesCount})</button>
-                            <button class=${`media-filter-btn ${q.mediaType === 'tv' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'tv' })}>TV Shows (${S.showsCount})</button>
+                            <button class=${`media-filter-btn ${q.mediaType === 'movie' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'movie' })}>Films (${M.films.length})</button>
                         </div>
 
                         ${Object.values(q).some(Boolean) && html`
@@ -2251,7 +2288,6 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                 <div style=${{ minHeight: '65vh' }}>
                     ${tab === 'overview' && html`<${OverviewTab} M=${M} S=${S} setTab=${setTab} onSelectFilm=${setSelectedFilm} />`}
                     ${tab === 'films' && html`<${FilmsTab} V=${V} S=${S} onSelectFilm=${setSelectedFilm} />`}
-                    ${tab === 'tv' && html`<${TvShowsTab} V=${V} S=${S} onSelectFilm=${setSelectedFilm} onSelectPerson=${setSelectedPerson} onToggleTvType=${toggleTvType} />`}
                     ${tab === 'diary' && html`<${DiaryTab} V=${V} S=${S} onSelectFilm=${setSelectedFilm} />`}
                     ${tab === 'ratings' && html`<${RatingsTab} S=${S} onSelectFilm=${setSelectedFilm} />`}
                     ${tab === 'stats' && html`<${StatsTab} M=${M} S=${S} onSelectFilm=${setSelectedFilm} onSelectPerson=${setSelectedPerson} />`}
@@ -2269,6 +2305,15 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                     entries=${M.entries}
                     onClose=${() => setSelectedFilm(null)}
                     onToggleTvType=${toggleTvType}
+                    onChangeWork=${async (film, result) => {
+                const target = M0.films.find(f => f.key === film.key);
+                if (!target) return;
+                const updated = await enrichTMDB([{ ...target, tmdbSelection: result }], TMDB_KEY);
+                if (updated && updated[film.key]) {
+                    setMeta(m => ({ ...m, [film.key]: { ...(m[film.key] || {}), ...updated[film.key] } }));
+                    setSelectedFilm(sf => ({ ...sf, ...updated[film.key] }));
+                }
+            }}
                     onSelectPerson=${p => {
                 setSelectedFilm(null);
                 setSelectedPerson(p);

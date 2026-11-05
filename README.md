@@ -46,11 +46,10 @@ Built from the ground up to honor Letterboxd's signature dark aesthetic, typogra
 - **Person Modals**: Click on any director, actor, or actress to view their bio, birthdate, birthplace, and your personal filmography of their works sorted by your rating.
 - **Actor/Actress Search**: Instant real-time search across all directors, actors, and actresses in your cinema history.
 
-### 📺 Intelligent TV Series & Miniseries Engine
-- **Smart Classification**: Accurately recognizes and separates television series and limited miniseries (*Chernobyl*, *Twin Peaks*, *The Queen's Gambit*, *Band of Brothers*, *Severance*, *The Bear*, *Shōgun*, *Arcane*, *Loki*, etc.) from feature films.
-- **Multi-Season & Subtitle Support**: Advanced matching that correlates multi-season premiere years and subtitle splits (e.g., *Twin Peaks: The Return*) without false film mismatches.
-- **Dedicated TV Hub**: View tracked series, total estimated episodes, creator profiles, and TV-specific stats.
-- **Manual Toggle**: A 1-click **"Switch to TV Series" / "Switch to Film"** button is available on every title card and detail modal to easily adjust any edge-case.
+### 🎞️ Unified Film Catalogue & TMDB Matching
+- **Year-aware matching**: Letterboxd's release year is checked against TMDB release dates before metadata is shown, preventing titles such as *Carrie* or *Obsession* from resolving to the wrong work.
+- **Films and series in one catalogue**: Series are displayed alongside films without a TV badge; their TMDB seasons and episode data are still retained internally.
+- **Manual correction**: The detail modal includes **"Cambiar obra"**, which searches TMDB by title and year so an ambiguous result can be corrected without re-importing the export.
 
 ### ✍️ Rich Review Formatting (HTML Support)
 - **Rendered HTML Tags**: Formats Letterboxd reviews preserving `<b>`, `<strong>`, `<i>`, `<em>`, `<p>`, `<a>`, and `<blockquote>` styling rather than displaying raw code.
@@ -148,4 +147,3 @@ Distributed under the **MIT License**. See `LICENSE` for details.
 <p align="center">
   <strong>Made with ❤️ for cinema lovers and film buffs around the world.</strong>
 </p>
-

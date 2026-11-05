@@ -31,10 +31,6 @@ function applyFilters(M, q) {
     const yr = q.year ? +q.year : null;
 
     let films = M.films.filter(f => {
-        // Media type filter
-        if (q.mediaType === 'movie' && f.isTv) return false;
-        if (q.mediaType === 'tv' && !f.isTv) return false;
-
         if (q.decade && !(f.year && Math.floor(f.year / 10) * 10 === +q.decade)) return false;
         if (q.rating && !(f.rating != null && f.rating >= +q.rating)) return false;
         if (q.liked && !f.liked) return false;

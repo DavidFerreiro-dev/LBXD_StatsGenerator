@@ -116,6 +116,56 @@ img {
     width: 100%;
 }
 
+.work-correction-box {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.work-correction-input {
+    width: 100%;
+    border: 1px solid var(--bd);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 7px 8px;
+    font-size: 11px;
+}
+
+.work-correction-results {
+    display: grid;
+    gap: 3px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.work-correction-result {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: var(--surface);
+    padding: 6px 7px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.work-correction-result:hover {
+    border-color: var(--g);
+}
+
+.work-correction-result small,
+.work-correction-status,
+.work-correction-error {
+    color: var(--mut);
+    font-size: 10px;
+}
+
+.work-correction-error {
+    color: var(--red);
+}
+
 /* ==========================================================================
    Splash / Welcome Loading Screen
    ========================================================================== */

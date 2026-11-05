@@ -413,7 +413,7 @@ async function enrichTMDB(films, key, onP) {
     let done = 0;
 
     films.forEach(f => {
-        if (_tmdbCache[f.key]) {
+        if (_tmdbCache[f.key] && !f.tmdbSelection) {
             out[f.key] = _tmdbCache[f.key];
         }
     });
@@ -421,7 +421,7 @@ async function enrichTMDB(films, key, onP) {
     const worker = async () => {
         while (q.length) {
             const f = q.shift();
-            if (_tmdbCache[f.key]) {
+            if (_tmdbCache[f.key] && !f.tmdbSelection) {
                 out[f.key] = _tmdbCache[f.key];
                 done++;
                 onP && onP(done, { ...out });
@@ -436,7 +436,8 @@ async function enrichTMDB(films, key, onP) {
                 let searchRes = null;
                 let isTvResult = false;
 
-                // 1. Search multi-database with the work's title
+                // Search both media types and use the Letterboxd year as the primary
+                // discriminator. Movie results are preferred when all other signals tie.
                 let multiRes = await (await fetch(`${B}/search/multi?query=${encodeURIComponent(f.name)}${k}`, H)).json();
                 if (multiRes.status_code === 7 || multiRes.status_code === 10 || multiRes.success === false) {
                     q.length = 0;
@@ -444,6 +445,24 @@ async function enrichTMDB(films, key, onP) {
                 }
 
                 let candidates = (multiRes.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+                const addResults = results => {
+                    for (const result of results || []) {
+                        const candidate = { ...result };
+                        if (!candidate.media_type) candidate.media_type = 'movie';
+                        if (!candidates.some(c => c.id === candidate.id && c.media_type === candidate.media_type)) {
+                            candidates.push(candidate);
+                        }
+                    }
+                };
+
+                if (f.year) {
+                    const movieYear = await fetch(`${B}/search/movie?query=${encodeURIComponent(f.name)}&year=${f.year}${k}`, H)
+                        .then(r => r.json()).catch(() => ({}));
+                    addResults(movieYear.results);
+                    const tvYear = await fetch(`${B}/search/tv?query=${encodeURIComponent(f.name)}&first_air_date_year=${f.year}${k}`, H)
+                        .then(r => r.json()).catch(() => ({}));
+                    addResults((tvYear.results || []).map(r => ({ ...r, media_type: 'tv' })));
+                }
 
                 // Check if candidates has a confident exact title & matching year
                 const hasStrongMatch = candidates.some(r => {
@@ -461,7 +480,7 @@ async function enrichTMDB(films, key, onP) {
                     try {
                         const tvRes = await (await fetch(`${B}/search/tv?query=${encodeURIComponent(f.name)}${k}`, H)).json();
                         if (tvRes.results && tvRes.results.length) {
-                            candidates.push(...tvRes.results.map(r => ({ ...r, media_type: 'tv' })));
+                            addResults(tvRes.results.map(r => ({ ...r, media_type: 'tv' })));
                         }
                     } catch {}
                 }
@@ -471,7 +490,7 @@ async function enrichTMDB(films, key, onP) {
                     try {
                         const tvBaseRes = await (await fetch(`${B}/search/tv?query=${encodeURIComponent(baseName)}${k}`, H)).json();
                         if (tvBaseRes.results && tvBaseRes.results.length) {
-                            candidates.push(...tvBaseRes.results.map(r => ({ ...r, media_type: 'tv' })));
+                            addResults(tvBaseRes.results.map(r => ({ ...r, media_type: 'tv' })));
                         }
                     } catch {}
                 }
@@ -480,7 +499,7 @@ async function enrichTMDB(films, key, onP) {
                 if (!candidates.length) {
                     const mRes = await fetch(`${B}/search/movie?query=${encodeURIComponent(f.name)}${k}`, H).then(r => r.json()).catch(() => ({}));
                     if (mRes.results && mRes.results.length) {
-                        candidates.push(...mRes.results.map(r => ({ ...r, media_type: 'movie' })));
+                        addResults(mRes.results.map(r => ({ ...r, media_type: 'movie' })));
                     }
                 }
 
@@ -488,7 +507,7 @@ async function enrichTMDB(films, key, onP) {
                     let best = null;
                     let bestScore = -999999;
 
-                    for (const r of candidates) {
+                    for (const r of (f.tmdbSelection ? [f.tmdbSelection] : candidates)) {
                         const title = r.title || r.name || '';
                         const origTitle = r.original_title || r.original_name || '';
                         const cExact = cleanExact(title);
@@ -540,6 +559,7 @@ async function enrichTMDB(films, key, onP) {
                         if (r.media_type === 'tv' && f.isTv) {
                             score += 500;
                         }
+                        if (r.media_type === 'movie' && !f.isTv) score += 100;
 
                         score += Math.min(60, (r.popularity || 0) / 5);
 
@@ -547,6 +567,7 @@ async function enrichTMDB(films, key, onP) {
                             bestScore = score;
                             best = r;
                         }
+
                     }
 
                     if (best) {
@@ -640,6 +661,24 @@ async function enrichTMDB(films, key, onP) {
 
     await Promise.all([worker(), worker(), worker(), worker(), worker(), worker(), worker(), worker()]);
     return out;
+}
+
+async function searchTMDBCandidates(query, year, key) {
+    const apiKey = key || TMDB_KEY;
+    const bearer = apiKey.length > 40;
+    const H = bearer ? { headers: { Authorization: 'Bearer ' + apiKey } } : {};
+    const k = bearer ? '' : '&api_key=' + apiKey;
+    const B = 'https://api.themoviedb.org/3';
+    const params = year ? `&year=${encodeURIComponent(year)}` : '';
+    const tvParams = year ? `&first_air_date_year=${encodeURIComponent(year)}` : '';
+    const [movies, shows] = await Promise.all([
+        fetch(`${B}/search/movie?query=${encodeURIComponent(query)}${params}${k}`, H).then(r => r.json()),
+        fetch(`${B}/search/tv?query=${encodeURIComponent(query)}${tvParams}${k}`, H).then(r => r.json())
+    ]);
+    return [
+        ...(movies.results || []).map(r => ({ ...r, media_type: 'movie', release_date: r.release_date || '' })),
+        ...(shows.results || []).map(r => ({ ...r, media_type: 'tv', release_date: r.first_air_date || '' }))
+    ].slice(0, 20);
 }
 
 /* Search person profile photo */
@@ -815,10 +854,10 @@ if (typeof module !== 'undefined' && module.exports) {
         classify,
         parseTable,
         enrichTMDB,
+        searchTMDBCandidates,
         fetchPersonPhoto,
         fetchPersonDetails,
         preloadGraphEdAssets,
         TMDB_KEY
     };
 }
-
