@@ -666,13 +666,74 @@ function MobileNav({ tab, setTab }) {
     `;
 }
 
-function Footer({ setTab }) {
+function InfoModal({ section, onClose }) {
+    const content = {
+        about: {
+            icon: '🎬',
+            title: 'About LBXD Stats Generator',
+            body: html`
+                <p><strong>LBXD Stats Generator</strong> turns your Letterboxd export into a visual dashboard with viewing statistics, film metadata, directors, actors and yearly GraphEd stories.</p>
+                <p>It is an independent open-source project and is not affiliated with Letterboxd.</p>
+            `
+        },
+        credits: {
+            icon: '🎞️',
+            title: 'Credits',
+            body: html`
+                <p>Created by <strong>David Ferreiro</strong>.</p>
+                <p>Film metadata, posters and cast information are provided by <strong>The Movie Database (TMDB)</strong>.</p>
+                <div class="info-modal-links">
+                    <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener">David Ferreiro on GitHub ↗</a>
+                    <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener">LBXD Stats Generator repository ↗</a>
+                    <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">The Movie Database ↗</a>
+                </div>
+            `
+        },
+        privacy: {
+            icon: '🔒',
+            title: 'Privacy & data processing',
+            body: html`
+                <p>Your ZIP/CSV file is exported by you from Letterboxd and is read inside your browser. LBXD Stats Generator does not connect to your account, ask for your password, upload your diary or store your personal data.</p>
+                <p>The data remains in the current browser session and is cleared when you refresh, close the page or use <strong>Clear Data</strong>.</p>
+                <p>To find posters and metadata, the app sends only film titles and release years to TMDB. Your ratings, reviews, profile and viewing history are not sent.</p>
+            `
+        }
+    }[section] || null;
+
+    if (!content) return null;
+    return html`
+        <div class="modal-backdrop-overlay info-modal-overlay" onClick=${e => e.target === e.currentTarget && onClose()}>
+            <section class="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+                <button class="modal-close-btn" onClick=${onClose} aria-label="Close">✕</button>
+                <div class="info-modal-header">
+                    <div class="info-modal-icon">${content.icon}</div>
+                    <div>
+                        <div class="info-modal-eyebrow">LBXD Stats Generator</div>
+                        <h2 id="info-modal-title">${content.title}</h2>
+                    </div>
+                </div>
+                <div class="info-modal-divider"></div>
+                <div class="info-modal-body">${content.body}</div>
+                <div class="info-modal-footer">
+                    <span>Independent open-source project</span>
+                    <button class="btn btn-primary info-modal-close" onClick=${onClose}>Done</button>
+                </div>
+            </section>
+        </div>
+    `;
+}
+
+function Footer({ setTab, onOpenInfo }) {
+    const open = section => {
+        if (onOpenInfo) onOpenInfo(section);
+        else setTab('credits');
+    };
     return html`
         <footer class="site-footer">
             <div class="footer-nav">
-                <a href="#about" onClick=${e => { e.preventDefault(); setTab('credits'); }}>About LBXD Stats Generator</a>
-                <a href="#credits" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Credits</a>
-                <a href="#privacy" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Privacy</a>
+                <a href="#about" onClick=${e => { e.preventDefault(); open('about'); }}>About LBXD Stats Generator</a>
+                <a href="#credits" onClick=${e => { e.preventDefault(); open('credits'); }}>Credits</a>
+                <a href="#privacy" onClick=${e => { e.preventDefault(); open('privacy'); }}>Privacy</a>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener">GitHub</a>
                 <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener">Repository</a>
                 <a href="https://letterboxd.com" target="_blank" rel="noopener">Letterboxd</a>
@@ -2275,6 +2336,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
     const [meta, setMeta] = useState(initialMeta || {});
     const [selectedFilm, setSelectedFilm] = useState(null);
     const [selectedPerson, setSelectedPerson] = useState(null);
+    const [infoSection, setInfoSection] = useState(null);
 
     // Dynamic model with metadata
     const M = useMemo(() => {
@@ -2363,7 +2425,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                 </div>
             </main>
 
-            <${Footer} setTab=${setTab} />
+            <${Footer} setTab=${setTab} onOpenInfo=${setInfoSection} />
             <${MobileNav} tab=${tab} setTab=${setTab} />
 
             ${selectedFilm && html`
@@ -2397,6 +2459,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                     onSelectFilm=${setSelectedFilm}
                 />
             `}
+            ${infoSection && html`<${InfoModal} section=${infoSection} onClose=${() => setInfoSection(null)} />`}
         </div>
     `;
 }
@@ -2679,7 +2742,7 @@ async function toSources(files) {
     return src;
 }
 
-function Landing({ onFiles, onLoadDemo, busy, error }) {
+function Landing({ onFiles, onLoadDemo, busy, error, onOpenInfo }) {
     const [dragover, setDragover] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileError, setFileError] = useState(null);
@@ -2966,7 +3029,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
                 </div>
             </main>
 
-            <${Footer} setTab=${() => { }} />
+            <${Footer} setTab=${() => { }} onOpenInfo=${onOpenInfo} />
         </div>
     `;
 }
@@ -3054,6 +3117,7 @@ function Diagnostic({ M, onGo, onBack }) {
 
 function App() {
     const [st, setSt] = useState({ phase: 'land', M: null, initialMeta: {}, err: '', busy: '', progress: null });
+    const [infoSection, setInfoSection] = useState(null);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -3187,7 +3251,16 @@ function App() {
         return html`<${Dashboard} M0=${st.M} initialMeta=${st.initialMeta} onClear=${clear} />`;
     }
 
-    return html`<${Landing} onFiles=${handleFiles} onLoadDemo=${handleLoadDemo} busy=${st.busy} error=${st.err} />`;
+    return html`
+        <${Landing}
+            onFiles=${handleFiles}
+            onLoadDemo=${handleLoadDemo}
+            busy=${st.busy}
+            error=${st.err}
+            onOpenInfo=${setInfoSection}
+        />
+        ${infoSection && html`<${InfoModal} section=${infoSection} onClose=${() => setInfoSection(null)} />`}
+    `;
 }
 
 if (typeof document !== 'undefined' && document.getElementById('root')) {
