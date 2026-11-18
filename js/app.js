@@ -60,7 +60,7 @@ function SplashScreen({ onFinish, busyText, progress }) {
             <div class="splash-content">
                 <div class="splash-film-reel"></div>
                 <div class="splash-logo-container">
-                    <img src="media/logo.png" alt="LBXD" class="splash-logo-img" />
+                    <img src="media/logo.png" alt="LBXD Stats Generator" class="splash-logo-img" />
                 </div>
                 <div class="splash-tagline">Your cinematic universe is loading</div>
                 
@@ -96,7 +96,6 @@ function FilmPosterCard({ film, sub, onClick }) {
                     </div>`
         }
                 
-                ${film.isTv && html`<div class="film-tv-badge">SERIES</div>`}
                 ${film.liked && html`<div class="film-heart-badge">♥</div>`}
             </div>
             
@@ -152,8 +151,12 @@ function PosterShelf({ title, count, list, sub, onSelectFilm, why, extraAction }
    Modals: Film Detail & Person Detail
    ========================================================================== */
 
-function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
+function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson, onChangeWork }) {
     if (!film) return null;
+    const [workQuery, setWorkQuery] = useState(film.name);
+    const [workResults, setWorkResults] = useState([]);
+    const [workSearching, setWorkSearching] = useState(false);
+    const [workError, setWorkError] = useState('');
 
     const filmEntries = useMemo(() => {
         return (entries || []).filter(e => e.key === film.key);
@@ -171,6 +174,19 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
     const rewatchesCount = useMemo(() => {
         return filmEntries.filter(e => e.isRewatch || e.rewatch).length;
     }, [filmEntries]);
+
+    const searchWorks = async () => {
+        setWorkSearching(true);
+        setWorkError('');
+        try {
+            const results = await searchTMDBCandidates(workQuery.trim(), film.year);
+            setWorkResults(results);
+        } catch (e) {
+            setWorkError('No se pudieron consultar las obras en TMDB.');
+        } finally {
+            setWorkSearching(false);
+        }
+    };
 
     useEffect(() => {
         const onKey = e => e.key === 'Escape' && onClose();
@@ -220,6 +236,31 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
                         >
                             ${film.isTv ? '🎬 Switch to Film' : '📺 Switch to TV Series'}
                         </button>
+
+                        <div class="work-correction-box">
+                            <button class="btn btn-ghost btn-sm" style=${{ width: '100%', fontSize: '11.5px' }} onClick=${searchWorks}>
+                                Cambiar obra
+                            </button>
+                            <input
+                                class="work-correction-input"
+                                value=${workQuery}
+                                onInput=${e => setWorkQuery(e.target.value)}
+                                onKeyDown=${e => e.key === 'Enter' && searchWorks()}
+                                placeholder="Buscar obra en TMDB"
+                            />
+                            ${workSearching && html`<div class="work-correction-status">Buscando…</div>`}
+                            ${workError && html`<div class="work-correction-error">${workError}</div>`}
+                            ${workResults.length > 0 && html`
+                                <div class="work-correction-results">
+                                    ${workResults.map(result => html`
+                                        <button class="work-correction-result" key=${`${result.media_type}-${result.id}`} onClick=${() => onChangeWork && onChangeWork(film, result)}>
+                                            <span>${result.title || result.name}</span>
+                                            <small>${(result.release_date || '').slice(0, 4) || '—'} · ${result.media_type === 'tv' ? 'TV' : 'Película'}</small>
+                                        </button>
+                                    `)}
+                                </div>
+                            `}
+                        </div>
                     </div>
 
                     <div class="modal-body-col">
@@ -231,7 +272,6 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
                         </div>
 
                         <div class="modal-meta-row">
-                            ${film.isTv && html`<span style=${{ background: 'var(--b)', color: '#061520', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>SERIES</span>`}
                             ${film.year && html`<span>${film.year}</span>`}
                             ${film.runtime && html`<span>· ${film.runtime} min ${film.isTv ? '/ ep' : ''}</span>`}
                             ${film.seasons && html`<span>· ${film.seasons} ${film.seasons === 1 ? 'season' : 'seasons'}</span>`}
@@ -325,10 +365,11 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
     `;
 }
 
-function PersonModal({ person, onClose, films, onSelectFilm }) {
+function PersonModal({ person, onClose, films, entries, onSelectFilm }) {
     if (!person) return null;
 
     const [details, setDetails] = useState(null);
+    const [watchedYear, setWatchedYear] = useState('');
 
     useEffect(() => {
         let active = true;
@@ -374,6 +415,17 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
 
     const ratedWorks = personWorks.filter(f => f.rating != null);
     const userAvg = ratedWorks.length ? avg(ratedWorks.map(f => f.rating)) : null;
+    const watchedYears = useMemo(() => [...new Set((entries || [])
+        .filter(e => e.date && personWorks.some(f => f.key === e.key))
+        .map(e => e.date.slice(0, 4))
+        .filter(Boolean))].sort((a, b) => b.localeCompare(a)), [entries, personWorks]);
+    const displayedWorks = useMemo(() => {
+        if (!watchedYear) return personWorks;
+        const keys = new Set((entries || [])
+            .filter(e => e.date && e.date.startsWith(watchedYear))
+            .map(e => e.key));
+        return personWorks.filter(f => keys.has(f.key));
+    }, [entries, personWorks, watchedYear]);
 
     const photoSrc = (details && details.photo) || person.photo;
 
@@ -395,9 +447,13 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
                         <h2 class="person-name-big">${person.n}</h2>
                         
                         <div style=${{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '6px', fontSize: '14px', color: 'var(--mut)' }}>
+<<<<<<< HEAD
                             <span><strong>${personWorks.length}</strong> titles watched</span>
                             ${directedWorks.length > 0 && html`<span><strong>${directedWorks.length}</strong> directed</span>`}
                             ${actedWorks.length > 0 && html`<span><strong>${actedWorks.length}</strong> acted</span>`}
+=======
+                            <span><strong>${displayedWorks.length}</strong> titles watched${watchedYear ? ` in ${watchedYear}` : ''}</span>
+>>>>>>> 0a20047f2531cafcbacbe7a037835ad53b37b6b0
                             ${userAvg != null && html`<span>Your average: <strong style=${{ color: COL.g }}>${fmt(userAvg)}★</strong></span>`}
                             ${details && details.birthday && html`<span>Born: ${details.birthday}</span>`}
                             ${details && details.placeOfBirth && html`<span>Birthplace: ${details.placeOfBirth}</span>`}
@@ -411,12 +467,22 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
 
                 <div style=${{ padding: '24px 28px' }}>
                     <div class="poster-shelf-header" style=${{ marginBottom: '14px' }}>
-                        <h3 class="poster-shelf-title">Watched Works with ${person.n} (${personWorks.length})</h3>
-                        <span class="poster-shelf-count">Sorted by your rating</span>
+                        <h3 class="poster-shelf-title">Watched Works with ${person.n} (${displayedWorks.length})</h3>
+                        <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <select
+                                class="person-year-filter"
+                                value=${watchedYear}
+                                onChange=${e => setWatchedYear(e.target.value)}
+                            >
+                                <option value="">All viewing years</option>
+                                ${watchedYears.map(year => html`<option value=${year} key=${year}>Viewed in ${year}</option>`)}
+                            </select>
+                            <span class="poster-shelf-count">Sorted by your rating</span>
+                        </div>
                     </div>
 
                     <div class="poster-grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
-                        ${personWorks.map(f => html`
+                        ${displayedWorks.map(f => html`
                             <${FilmPosterCard}
                                 key=${f.key}
                                 film=${f}
@@ -559,7 +625,6 @@ function Header({ tab, setTab, onClear, user }) {
     const navItems = [
         { id: 'overview', label: 'Overview' },
         { id: 'films', label: 'Films' },
-        { id: 'tv', label: 'TV Shows' },
         { id: 'diary', label: 'Diary' },
         { id: 'ratings', label: 'Ratings' },
         { id: 'stats', label: 'Stats' },
@@ -570,8 +635,8 @@ function Header({ tab, setTab, onClear, user }) {
     return html`
         <header class="site-header">
             <div class="header-inner">
-                <a class="brand-logo" onClick=${() => setTab('overview')} title="LBXD — Overview">
-                    <img src="media/logo.png" alt="LBXD" class="brand-logo-img" />
+                <a class="brand-logo" onClick=${() => setTab('overview')} title="LBXD Stats Generator — Overview">
+                    <img src="media/logo.png" alt="LBXD Stats Generator" class="brand-logo-img" />
                     <span class="brand-badge">CINEMA</span>
                 </a>
 
@@ -601,7 +666,6 @@ function MobileNav({ tab, setTab }) {
     const items = [
         { id: 'overview', icon: '📊', label: 'Overview' },
         { id: 'films', icon: '🎬', label: 'Films' },
-        { id: 'tv', icon: '📺', label: 'TV' },
         { id: 'diary', icon: '📅', label: 'Diary' },
         { id: 'ratings', icon: '★', label: 'Ratings' },
         { id: 'stats', icon: '👥', label: 'Stats' },
@@ -626,20 +690,82 @@ function MobileNav({ tab, setTab }) {
     `;
 }
 
-function Footer({ setTab }) {
+function InfoModal({ section, onClose }) {
+    const content = {
+        about: {
+            icon: '🎬',
+            title: 'About LBXD Stats Generator',
+            body: html`
+                <p><strong>LBXD Stats Generator</strong> turns your Letterboxd export into a visual dashboard with viewing statistics, film metadata, directors, actors and yearly GraphEd stories.</p>
+                <p>It is an independent open-source project and is not affiliated with Letterboxd.</p>
+            `
+        },
+        credits: {
+            icon: '🎞️',
+            title: 'Credits',
+            body: html`
+                <p>Created by <strong>David Ferreiro</strong>.</p>
+                <p>Film metadata, posters and cast information are provided by <strong>The Movie Database (TMDB)</strong>.</p>
+                <div class="info-modal-links">
+                    <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener">David Ferreiro on GitHub ↗</a>
+                    <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener">LBXD Stats Generator repository ↗</a>
+                    <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">The Movie Database ↗</a>
+                </div>
+            `
+        },
+        privacy: {
+            icon: '🔒',
+            title: 'Privacy & data processing',
+            body: html`
+                <p>Your ZIP/CSV file is exported by you from Letterboxd and is read inside your browser. LBXD Stats Generator does not connect to your account, ask for your password, upload your diary or store your personal data.</p>
+                <p>The data remains in the current browser session and is cleared when you refresh, close the page or use <strong>Clear Data</strong>.</p>
+                <p>To find posters and metadata, the app sends only film titles and release years to TMDB. Your ratings, reviews, profile and viewing history are not sent.</p>
+            `
+        }
+    }[section] || null;
+
+    if (!content) return null;
+    return html`
+        <div class="modal-backdrop-overlay info-modal-overlay" onClick=${e => e.target === e.currentTarget && onClose()}>
+            <section class="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+                <button class="modal-close-btn" onClick=${onClose} aria-label="Close">✕</button>
+                <div class="info-modal-header">
+                    <div class="info-modal-icon">${content.icon}</div>
+                    <div>
+                        <div class="info-modal-eyebrow">LBXD Stats Generator</div>
+                        <h2 id="info-modal-title">${content.title}</h2>
+                    </div>
+                </div>
+                <div class="info-modal-divider"></div>
+                <div class="info-modal-body">${content.body}</div>
+                <div class="info-modal-footer">
+                    <span>Independent open-source project</span>
+                    <button class="btn btn-primary info-modal-close" onClick=${onClose}>Done</button>
+                </div>
+            </section>
+        </div>
+    `;
+}
+
+function Footer({ setTab, onOpenInfo }) {
+    const open = section => {
+        if (onOpenInfo) onOpenInfo(section);
+        else setTab('credits');
+    };
     return html`
         <footer class="site-footer">
             <div class="footer-nav">
-                <a href="#about" onClick=${e => { e.preventDefault(); setTab('credits'); }}>About LBXD</a>
-                <a href="#credits" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Credits</a>
-                <a href="#privacy" onClick=${e => { e.preventDefault(); setTab('credits'); }}>Privacy</a>
+                <a href="#about" onClick=${e => { e.preventDefault(); open('about'); }}>About LBXD Stats Generator</a>
+                <a href="#credits" onClick=${e => { e.preventDefault(); open('credits'); }}>Credits</a>
+                <a href="#privacy" onClick=${e => { e.preventDefault(); open('privacy'); }}>Privacy</a>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener">Repository</a>
                 <a href="https://letterboxd.com" target="_blank" rel="noopener">Letterboxd</a>
                 <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>
             </div>
             <div>LBXD Stats Generator — An independent open-source project for film lovers.</div>
             <div style=${{ fontSize: '12px', color: 'var(--dim)', marginTop: '8px' }}>
-                LBXD is not affiliated with, endorsed by, or officially connected to Letterboxd.
+                LBXD Stats Generator is not affiliated with, endorsed by, or officially connected to Letterboxd.
             </div>
         </footer>
     `;
@@ -675,8 +801,8 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                             <button class="btn btn-primary" onClick=${() => setTab('graphed')}>
                                 ✨ View Annual GraphEd
                             </button>
-                            <button class="btn btn-ghost" onClick=${() => setTab('tv')}>
-                                📺 TV Shows (${S.showsCount})
+                            <button class="btn btn-ghost" onClick=${() => setTab('films')}>
+                                🎬 All films (${S.n})
                             </button>
                         </div>
                     </div>
@@ -701,6 +827,7 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         <div class="stat-value">${S.n}</div>
                         <div class="stat-label">Unique Films</div>
                     </div>
+
                     <div class="stat-card">
                         <div class="stat-value">${S.viewings}</div>
                         <div class="stat-label">Total Viewings</div>
@@ -722,6 +849,46 @@ function OverviewTab({ M, S, setTab, onSelectFilm }) {
                         <div class="stat-label">Longest Daily Streak</div>
                     </div>
                 </div>
+
+                ${M.profile && html`
+                    <div class="profile-overview-card">
+                        <div class="profile-overview-heading">
+                            <div class="profile-overview-kicker">Letterboxd profile</div>
+                            <h2>${[M.profile.givenName, M.profile.familyName].filter(Boolean).join(' ') || (M.profile.user ? '@' + M.profile.user : 'Your profile')}</h2>
+                        </div>
+                        <div class="profile-overview-meta">
+                            ${M.profile.user && html`<span><strong>Username</strong> @${M.profile.user}</span>`}
+                            ${M.profile.location && html`<span><strong>Location</strong> ${M.profile.location}</span>`}
+                            ${M.profile.pronoun && html`<span><strong>Pronouns</strong> ${M.profile.pronoun}</span>`}
+                            ${M.profile.joined && html`<span><strong>Joined</strong> ${M.profile.joined}</span>`}
+                            ${M.profile.website && html`<a href=${M.profile.website} target="_blank" rel="noopener"><strong>Custom link</strong> ↗</a>`}
+                            ${M.profile.email && html`<a href=${`mailto:${M.profile.email}`}><strong>Email</strong> ${M.profile.email}</a>`}
+                        </div>
+                        ${M.profile.bio && html`
+                            <div class="profile-overview-bio">
+                                <div class="profile-overview-label">Bio</div>
+                                <div dangerouslySetInnerHTML=${{ __html: formatReviewHtml(M.profile.bio) }}></div>
+                            </div>
+                        `}
+                        ${M.profile.favoriteFilms && M.profile.favoriteFilms.length === 4 && html`
+                            <div class="profile-favorites">
+                                <div class="profile-favorites-heading">
+                                    <span class="profile-favorites-icon">♥</span>
+                                    <strong>Favorite films</strong>
+                                    <span class="profile-favorites-rule"></span>
+                                </div>
+                                <div class="profile-favorite-posters">
+                                    ${M.profile.favoriteFilms.map(f => html`
+                                        <div class="profile-favorite-item" key=${f.key}>
+                                            <div class="profile-favorite-number">${M.profile.favoriteFilms.indexOf(f) + 1}</div>
+                                            <${FilmPosterCard} film=${f} onClick=${onSelectFilm} />
+                                        </div>
+                                    `)}
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                `}
 
                 <!-- Dual Visual Charts -->
                 <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', margin: '28px 0' }}>
@@ -788,7 +955,7 @@ function FilmsTab({ V, S, onSelectFilm }) {
 
     const filteredFilms = useMemo(() => {
         const q = search.toLowerCase().trim();
-        let list = V.films.filter(f => !f.isTv && (!q || f.name.toLowerCase().includes(q)));
+        let list = V.films.filter(f => !q || f.name.toLowerCase().includes(q));
         list = list.slice().sort((a, b) => {
             let va = a[sort[0]], vb = b[sort[0]];
             if (sort[0] === 'views') {
@@ -812,7 +979,7 @@ function FilmsTab({ V, S, onSelectFilm }) {
 
             <${PosterShelf}
                 title="Most Watched Films"
-                list=${S.mostSeen.filter(f => !f.isTv).slice(0, 14)}
+                list=${S.mostSeen.slice(0, 14)}
                 sub=${f => (S.vc.get(f.key) || 0) + ' viewings'}
                 onSelectFilm=${onSelectFilm}
             />
@@ -1024,7 +1191,7 @@ function DiaryTab({ V, S, onSelectFilm }) {
                                         <td style=${{ padding: '12px 10px', color: 'var(--mut)' }}>${e.date}</td>
                                         <td style=${{ padding: '12px 10px', fontWeight: 600 }}>${f.name}</td>
                                         <td style=${{ padding: '12px 10px', color: 'var(--mut)' }}>${f.year || '—'}</td>
-                                        <td style=${{ padding: '12px 10px' }}>${f.isTv ? html`<span style=${{ background: 'var(--b)', color: '#061520', fontSize: '10px', padding: '2px 5px', borderRadius: '3px', fontWeight: 800 }}>SERIES</span>` : 'Film'}</td>
+                                        <td style=${{ padding: '12px 10px' }}>Film</td>
                                         <td style=${{ padding: '12px 10px', color: COL.g, fontWeight: 700 }}>${stars(e.rating)}</td>
                                         <td style=${{ padding: '12px 10px', color: 'var(--mut)' }}>${(e.isRewatch || e.rewatch) ? '↻ Rewatch' : ''}</td>
                                     </tr>
@@ -1619,7 +1786,7 @@ function GraphEdTab({ M, onSelectFilm, onSelectPerson }) {
                 ${slide === 0 && html`
                     <div class="graphed-slide-content graphed-slide-intro">
                         <div class="graphed-intro-tag">
-                            ✨ LBXD GraphEd · Annual Review
+                            ✨ LBXD Stats Generator GraphEd · Annual Review
                         </div>
                         <h2 class="graphed-intro-title">
                             ${d.title}
@@ -2087,7 +2254,7 @@ function GraphEdTab({ M, onSelectFilm, onSelectPerson }) {
 function CreditsTab() {
     return html`
         <div class="credits-wrapper">
-            <h2 style=${{ fontFamily: 'var(--serif)', fontSize: '32px', textAlign: 'center', marginBottom: '8px' }}>Credits & About LBXD</h2>
+            <h2 style=${{ fontFamily: 'var(--serif)', fontSize: '32px', textAlign: 'center', marginBottom: '8px' }}>Credits & About LBXD Stats Generator</h2>
             <p style=${{ textAlign: 'center', color: 'var(--mut)', marginBottom: '36px' }}>
                 An independent open-source project dedicated to cinema lovers.
             </p>
@@ -2106,7 +2273,7 @@ function CreditsTab() {
                     and create your own yearly movie recap.
                 </p>
                 <p>
-                    LBXD is not affiliated with Letterboxd. It is an independent project built by a film lover, for film lovers.
+                    LBXD Stats Generator is not affiliated with Letterboxd. It is an independent project built by a film lover, for film lovers.
                 </p>
             </div>
 
@@ -2116,14 +2283,14 @@ function CreditsTab() {
                     <h3>Made possible by Letterboxd</h3>
                 </div>
                 <p>
-                    Letterboxd is the ultimate social network for film enthusiasts. LBXD exists thanks to
+                    Letterboxd is the ultimate social network for film enthusiasts. LBXD Stats Generator exists thanks to
                     Letterboxd's vibrant community and the ability for members to export their personal data openly and transparently.
                 </p>
                 <a href="https://letterboxd.com" target="_blank" rel="noopener" class="credits-badge-link">
                     <span>🎬</span> letterboxd.com ↗
                 </a>
                 <div class="disclaimer-note">
-                    LBXD is an independent project and is not affiliated with, endorsed by, or officially connected to Letterboxd.
+                    LBXD Stats Generator is an independent project and is not affiliated with, endorsed by, or officially connected to Letterboxd.
                 </div>
             </div>
 
@@ -2154,10 +2321,13 @@ function CreditsTab() {
                     crafted with care for the global film community.
                 </p>
                 <p>
-                    LBXD is open source. Its full source code is publicly available on GitHub for anyone to explore, contribute to, or inspect.
+                    LBXD Stats Generator is open source. Its full source code is publicly available on GitHub for anyone to explore, contribute to, or inspect.
                 </p>
                 <a href="https://github.com/DavidFerreiro-dev" target="_blank" rel="noopener" class="btn btn-primary" style=${{ display: 'inline-flex' }}>
-                    View source code on GitHub ↗
+                    View David Ferreiro on GitHub ↗
+                </a>
+                <a href="https://github.com/DavidFerreiro-dev/LBXD_StatsGenerator" target="_blank" rel="noopener" class="btn btn-ghost" style=${{ display: 'inline-flex', marginLeft: '8px' }}>
+                    View LBXD repository ↗
                 </a>
             </div>
 
@@ -2170,7 +2340,7 @@ function CreditsTab() {
                     <strong>100% Local in your browser:</strong> Your ZIP and CSV files are decompressed and parsed exclusively inside your browser's local memory. No personal viewing data, dates, reviews or ratings are ever sent to external servers.
                 </p>
                 <p>
-                    <strong>No persistent tracking:</strong> LBXD does not store your film data in external databases. When you close the tab or click "Clear Data", your session is wiped clean.
+                    <strong>No persistent tracking:</strong> LBXD Stats Generator does not store your film data in external databases. When you close the tab or click "Clear Data", your session is wiped clean.
                 </p>
                 <p>
                     <strong>TMDB Enrichment:</strong> When fetching posters and metadata, only film titles and release years are queried against TMDB's public API, never your personal user information.
@@ -2190,6 +2360,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
     const [meta, setMeta] = useState(initialMeta || {});
     const [selectedFilm, setSelectedFilm] = useState(null);
     const [selectedPerson, setSelectedPerson] = useState(null);
+    const [infoSection, setInfoSection] = useState(null);
 
     // Dynamic model with metadata
     const M = useMemo(() => {
@@ -2210,11 +2381,11 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
     useEffect(() => {
         const remaining = M0.films.filter(f => f.watched && !meta[f.key]);
         if (remaining.length) {
-            enrichTMDB(remaining, TMDB_KEY).then(res => {
-                if (res && Object.keys(res).length) {
-                    setMeta(m => ({ ...m, ...res }));
+            enrichTMDB(remaining, TMDB_KEY, (_, batch) => {
+                if (batch && Object.keys(batch).length) {
+                    setMeta(m => ({ ...m, ...batch }));
                 }
-            }).catch(() => { });
+            }).catch(() => {});
         }
     }, [M0]);
 
@@ -2256,8 +2427,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                     <div style=${{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '18px 0 6px', flexWrap: 'wrap', gap: '10px' }}>
                         <div class="media-filter-pills">
                             <button class=${`media-filter-btn ${q.mediaType === 'all' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'all' })}>All (${M.films.length})</button>
-                            <button class=${`media-filter-btn ${q.mediaType === 'movie' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'movie' })}>Films (${S.moviesCount})</button>
-                            <button class=${`media-filter-btn ${q.mediaType === 'tv' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'tv' })}>TV Shows (${S.showsCount})</button>
+                            <button class=${`media-filter-btn ${q.mediaType === 'movie' ? 'active' : ''}`} onClick=${() => setQ({ ...q, mediaType: 'movie' })}>Films (${M.films.length})</button>
                         </div>
 
                         ${Object.values(q).some(Boolean) && html`
@@ -2271,7 +2441,6 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                 <div style=${{ minHeight: '65vh' }}>
                     ${tab === 'overview' && html`<${OverviewTab} M=${M} S=${S} setTab=${setTab} onSelectFilm=${setSelectedFilm} />`}
                     ${tab === 'films' && html`<${FilmsTab} V=${V} S=${S} onSelectFilm=${setSelectedFilm} />`}
-                    ${tab === 'tv' && html`<${TvShowsTab} V=${V} S=${S} onSelectFilm=${setSelectedFilm} onSelectPerson=${setSelectedPerson} onToggleTvType=${toggleTvType} />`}
                     ${tab === 'diary' && html`<${DiaryTab} V=${V} S=${S} onSelectFilm=${setSelectedFilm} />`}
                     ${tab === 'ratings' && html`<${RatingsTab} S=${S} onSelectFilm=${setSelectedFilm} />`}
                     ${tab === 'stats' && html`<${StatsTab} M=${M} S=${S} onSelectFilm=${setSelectedFilm} onSelectPerson=${setSelectedPerson} />`}
@@ -2280,7 +2449,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                 </div>
             </main>
 
-            <${Footer} setTab=${setTab} />
+            <${Footer} setTab=${setTab} onOpenInfo=${setInfoSection} />
             <${MobileNav} tab=${tab} setTab=${setTab} />
 
             ${selectedFilm && html`
@@ -2289,6 +2458,15 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
                     entries=${M.entries}
                     onClose=${() => setSelectedFilm(null)}
                     onToggleTvType=${toggleTvType}
+                    onChangeWork=${async (film, result) => {
+                const target = M0.films.find(f => f.key === film.key);
+                if (!target) return;
+                const updated = await enrichTMDB([{ ...target, tmdbSelection: result }], TMDB_KEY);
+                if (updated && updated[film.key]) {
+                    setMeta(m => ({ ...m, [film.key]: { ...(m[film.key] || {}), ...updated[film.key] } }));
+                    setSelectedFilm(sf => ({ ...sf, ...updated[film.key] }));
+                }
+            }}
                     onSelectPerson=${p => {
                 setSelectedFilm(null);
                 setSelectedPerson(p);
@@ -2299,11 +2477,17 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
             ${selectedPerson && html`
                 <${PersonModal}
                     person=${selectedPerson}
+<<<<<<< HEAD
                     films=${M.films.filter(f => !f.isTv)}
+=======
+                    films=${M.films}
+                    entries=${M.entries}
+>>>>>>> 0a20047f2531cafcbacbe7a037835ad53b37b6b0
                     onClose=${() => setSelectedPerson(null)}
                     onSelectFilm=${setSelectedFilm}
                 />
             `}
+            ${infoSection && html`<${InfoModal} section=${infoSection} onClose=${() => setInfoSection(null)} />`}
         </div>
     `;
 }
@@ -2586,7 +2770,7 @@ async function toSources(files) {
     return src;
 }
 
-function Landing({ onFiles, onLoadDemo, busy, error }) {
+function Landing({ onFiles, onLoadDemo, busy, error, onOpenInfo }) {
     const [dragover, setDragover] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileError, setFileError] = useState(null);
@@ -2626,7 +2810,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
             <header class="site-header" style=${{ position: 'relative', zIndex: 10 }}>
                 <div class="header-inner">
                     <span class="brand-logo">
-                        <img src="media/logo.png" alt="LBXD" class="brand-logo-img" />
+                        <img src="media/logo.png" alt="LBXD Stats Generator" class="brand-logo-img" />
                         <span class="brand-badge">CINEMA</span>
                     </span>
 
@@ -2652,7 +2836,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
                     </div>
 
                     <div class="landing-logo-container">
-                        <img src="media/logo.png" alt="LBXD — Stats Generator" class="landing-hero-logo" />
+                        <img src="media/logo.png" alt="LBXD Stats Generator" class="landing-hero-logo" />
                     </div>
                     <div class="landing-subtitle"></div>
 
@@ -2774,7 +2958,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
                         <span class="landing-teaser-badge">✦ Preview</span>
                         <h2 class="landing-teaser-title">Visual Showcase · What you will discover with your data</h2>
                         <p class="landing-teaser-sub">
-                            A glimpse of the rich film cards, actors, and stats generated by LBXD once your data is imported.
+                            A glimpse of the rich film cards, actors, and stats generated by LBXD Stats Generator once your data is imported.
                         </p>
                     </div>
 
@@ -2873,7 +3057,7 @@ function Landing({ onFiles, onLoadDemo, busy, error }) {
                 </div>
             </main>
 
-            <${Footer} setTab=${() => { }} />
+            <${Footer} setTab=${() => { }} onOpenInfo=${onOpenInfo} />
         </div>
     `;
 }
@@ -2886,7 +3070,7 @@ function Diagnostic({ M, onGo, onBack }) {
             <header class="site-header">
                 <div class="header-inner">
                     <span class="brand-logo">
-                        <img src="media/logo.png" alt="LBXD" class="brand-logo-img" />
+                        <img src="media/logo.png" alt="LBXD Stats Generator" class="brand-logo-img" />
                         <span class="brand-badge">SUMMARY</span>
                     </span>
                 </div>
@@ -2961,6 +3145,7 @@ function Diagnostic({ M, onGo, onBack }) {
 
 function App() {
     const [st, setSt] = useState({ phase: 'land', M: null, initialMeta: {}, err: '', busy: '', progress: null });
+    const [infoSection, setInfoSection] = useState(null);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -2999,8 +3184,18 @@ function App() {
             watchedFilms.filter(f => f.liked).forEach(f => priorityKeys.add(f.key));
             // 4. Any remaining watched films
             watchedFilms.forEach(f => priorityKeys.add(f.key));
+            (M.profile.favoriteFilms || []).forEach(f => priorityKeys.add(f.key));
 
+<<<<<<< HEAD
             const filmsToEnrich = watchedFilms.filter(f => priorityKeys.has(f.key));
+=======
+            const favoriteKeys = new Set((M.profile.favoriteFilms || []).map(f => f.key));
+            const filmsToEnrich = watchedFilms
+                .slice()
+                .sort((a, b) => Number(favoriteKeys.has(b.key)) - Number(favoriteKeys.has(a.key)))
+                .filter(f => priorityKeys.has(f.key))
+                .slice(0, 16);
+>>>>>>> 0a20047f2531cafcbacbe7a037835ad53b37b6b0
             let initialMeta = {};
 
             if (filmsToEnrich.length) {
@@ -3013,7 +3208,7 @@ function App() {
                             resolved = true;
                             resolve();
                         }
-                    }, 18000);
+                    }, 10000);
 
                     enrichTMDB(filmsToEnrich, TMDB_KEY, (done, metaBatch) => {
                         initialMeta = metaBatch;
@@ -3021,7 +3216,7 @@ function App() {
                         setSt(s => ({
                             ...s,
                             progress: pct,
-                            busy: `Downloading high-resolution posters and metadata (${done}/${filmsToEnrich.length})…`
+                            busy: `Downloading posters and metadata (${done}/${filmsToEnrich.length})…`
                         }));
                         if (done >= filmsToEnrich.length && !resolved) {
                             resolved = true;
@@ -3044,13 +3239,13 @@ function App() {
                     }
                 });
 
-                // Pre-decode top poster images in browser cache so they appear instantaneously
+                // Pre-decode only a few posters; the rest load lazily in the dashboard.
                 const postersToPreload = Object.values(initialMeta)
                     .map(m => m.poster)
                     .filter(Boolean)
-                    .slice(0, 35);
+                    .slice(0, 8);
                 if (typeof preloadImage === 'function') {
-                    await Promise.all(postersToPreload.map(p => preloadImage(p, 1800)));
+                    Promise.all(postersToPreload.map(p => preloadImage(p, 700))).catch(() => {});
                 }
             }
 
@@ -3088,7 +3283,16 @@ function App() {
         return html`<${Dashboard} M0=${st.M} initialMeta=${st.initialMeta} onClear=${clear} />`;
     }
 
-    return html`<${Landing} onFiles=${handleFiles} onLoadDemo=${handleLoadDemo} busy=${st.busy} error=${st.err} />`;
+    return html`
+        <${Landing}
+            onFiles=${handleFiles}
+            onLoadDemo=${handleLoadDemo}
+            busy=${st.busy}
+            error=${st.err}
+            onOpenInfo=${setInfoSection}
+        />
+        ${infoSection && html`<${InfoModal} section=${infoSection} onClose=${() => setInfoSection(null)} />`}
+    `;
 }
 
 if (typeof document !== 'undefined' && document.getElementById('root')) {
