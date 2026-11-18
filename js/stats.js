@@ -10,6 +10,14 @@ const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
 const dayN = s => Math.floor(Date.parse(s + 'T00:00:00Z') / 864e5);
 const wd = s => (new Date(s + 'T00:00:00Z').getUTCDay() + 6) % 7;
 
+const entryChronology = e => {
+    const value = e && (e.logged || e.date);
+    if (!value) return '';
+    const parsed = Date.parse(String(value));
+    if (!Number.isNaN(parsed)) return String(parsed).padStart(13, '0');
+    return String(value);
+};
+
 const tally = (arr, fn) => {
     const m = new Map();
     arr.forEach(x => {
@@ -71,14 +79,18 @@ function people(films, getter, minForBest = 2) {
     const m = new Map();
     films.forEach(f => {
         const items = getter(f) || [];
+        const seenInFilm = new Set();
         items.forEach(p => {
             const name = typeof p === 'string' ? p : (p && (p.name || p.n)) || '';
             if (!name) return;
             const photo = (p && typeof p === 'object') ? (p.photo || null) : null;
             const id = (p && typeof p === 'object') ? (p.id || null) : null;
             const role = (p && typeof p === 'object') ? (p.role || null) : null;
+            const key = id ? `id:${id}` : `name:${name.toLowerCase()}`;
+            if (seenInFilm.has(key)) return;
+            seenInFilm.add(key);
 
-            const o = m.get(name) || {
+            const o = m.get(key) || {
                 n: name,
                 c: 0,
                 r: [],
@@ -94,7 +106,7 @@ function people(films, getter, minForBest = 2) {
             if (role && !o.role) o.role = role;
             if (f.rating != null) o.r.push(f.rating);
             o.films.push(f);
-            m.set(name, o);
+            m.set(key, o);
         });
     });
 
@@ -196,10 +208,11 @@ function compute(V) {
     const byR = (a, b) => (b.rating || 0) - (a.rating || 0) || a.name.localeCompare(b.name);
     const rt = films.filter(f => f.runtime);
 
-    const dir = people(films, f => f.directors);
-    const act = people(films, f => f.cast ? f.cast.filter(c => c.g === 2 || !c.g) : []);
-    const actr = people(films, f => f.cast ? f.cast.filter(c => c.g === 1) : []);
-    const castAll = people(films, f => f.cast || []);
+    const movieFilms = films.filter(f => !f.isTv);
+    const dir = people(movieFilms, f => f.directors);
+    const act = people(movieFilms, f => f.cast ? f.cast.filter(c => c.g === 2 || !c.g) : []);
+    const actr = people(movieFilms, f => f.cast ? f.cast.filter(c => c.g === 1) : []);
+    const castAll = people(movieFilms, f => f.cast || []);
     const gen = people(films, f => f.genres || []);
 
     // TV specific people
@@ -312,19 +325,26 @@ function compute(V) {
    ========================================================================== */
 
 const YearStats = {
-    viewings: (M, y) => M.entries.filter(e => e.date && +e.date.slice(0, 4) === y),
-    released: (M, y) => M.films.filter(f => f.watched && f.year === y),
+    viewings: (M, y) => {
+        const m = fmap(M);
+        return M.entries.filter(e => {
+            if (!e.date || +e.date.slice(0, 4) !== y) return false;
+            const f = m.get(e.key);
+            return !f || !f.isTv;
+        });
+    },
+    released: (M, y) => M.films.filter(f => f.watched && !f.isTv && f.year === y),
     uniqueFilms: (M, y) => {
         const m = fmap(M);
         const s = new Set(YearStats.viewings(M, y).map(e => e.key));
         return [...s].map(k => m.get(k)).filter(Boolean);
     },
     first: (M, y) => {
-        const dated = YearStats.viewings(M, y).filter(e => e.date).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        const dated = YearStats.viewings(M, y).filter(e => e.logged || e.date).sort((a, b) => entryChronology(a).localeCompare(entryChronology(b)));
         return dated[0] || YearStats.viewings(M, y)[0] || null;
     },
     last: (M, y) => {
-        const dated = YearStats.viewings(M, y).filter(e => e.date).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const dated = YearStats.viewings(M, y).filter(e => e.logged || e.date).sort((a, b) => entryChronology(b).localeCompare(entryChronology(a)));
         return dated[0] || YearStats.viewings(M, y)[0] || null;
     },
     topRated: (M, y, n = 6) => {

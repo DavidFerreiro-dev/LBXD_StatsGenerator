@@ -160,8 +160,12 @@ function FilmModal({ film, onClose, entries, onToggleTvType, onSelectPerson }) {
     }, [film, entries]);
 
     const lastSeen = useMemo(() => {
-        const dated = filmEntries.filter(e => e.date).sort((a, b) => b.date.localeCompare(a.date));
-        return dated[0] ? dated[0].date : (filmEntries[0] ? filmEntries[0].logged : null);
+        const dated = filmEntries.filter(e => e.logged || e.date).sort((a, b) => {
+            const aValue = a.logged || a.date || '';
+            const bValue = b.logged || b.date || '';
+            return bValue.localeCompare(aValue);
+        });
+        return dated[0] ? (dated[0].logged || dated[0].date) : null;
     }, [filmEntries]);
 
     const rewatchesCount = useMemo(() => {
@@ -346,13 +350,27 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
     }, [onClose]);
 
     // Find all works seen by user with this person
+    const matchesPerson = (p, nameKey) => {
+        if (!p) return false;
+        if (typeof p === 'string') return p === person.n;
+        return (person.id && p.id === person.id) ||
+            ((!person.id || !p.id) && p[nameKey] === person.n);
+    };
+
     const personWorks = useMemo(() => {
         return (films || []).filter(f => {
-            const hasDir = (f.directors || []).some(d => (typeof d === 'string' ? d : d.name) === person.n);
-            const hasCast = (f.cast || []).some(c => (typeof c === 'string' ? c : c.n) === person.n);
+            const hasDir = (f.directors || []).some(d => matchesPerson(d, 'name'));
+            const hasCast = (f.cast || []).some(c => matchesPerson(c, 'n'));
             return hasDir || hasCast;
         }).sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }, [person, films]);
+
+    const directedWorks = personWorks.filter(f =>
+        (f.directors || []).some(d => matchesPerson(d, 'name'))
+    );
+    const actedWorks = personWorks.filter(f =>
+        (f.cast || []).some(c => matchesPerson(c, 'n'))
+    );
 
     const ratedWorks = personWorks.filter(f => f.rating != null);
     const userAvg = ratedWorks.length ? avg(ratedWorks.map(f => f.rating)) : null;
@@ -378,6 +396,8 @@ function PersonModal({ person, onClose, films, onSelectFilm }) {
                         
                         <div style=${{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '6px', fontSize: '14px', color: 'var(--mut)' }}>
                             <span><strong>${personWorks.length}</strong> titles watched</span>
+                            ${directedWorks.length > 0 && html`<span><strong>${directedWorks.length}</strong> directed</span>`}
+                            ${actedWorks.length > 0 && html`<span><strong>${actedWorks.length}</strong> acted</span>`}
                             ${userAvg != null && html`<span>Your average: <strong style=${{ color: COL.g }}>${fmt(userAvg)}★</strong></span>`}
                             ${details && details.birthday && html`<span>Born: ${details.birthday}</span>`}
                             ${details && details.placeOfBirth && html`<span>Birthplace: ${details.placeOfBirth}</span>`}
@@ -1876,7 +1896,7 @@ function GraphEdTab({ M, onSelectFilm, onSelectPerson }) {
                                         </div>
                                     </div>
                                     <div class="graphed-compare-title">${d.firstFilm.name}</div>
-                                    <div class="graphed-compare-date">Watched ${d.firstEntry ? d.firstEntry.date : '—'}</div>
+                                    <div class="graphed-compare-date">Logged ${d.firstEntry ? (d.firstEntry.logged || d.firstEntry.date) : '—'}</div>
                                     <div class="graphed-compare-stars">${stars(d.firstEntry ? d.firstEntry.rating : d.firstFilm.rating)}</div>
                                 ` : html`
                                     <div style=${{ color: 'var(--mut)', padding: '24px 0' }}>No dated entries</div>
@@ -1898,7 +1918,7 @@ function GraphEdTab({ M, onSelectFilm, onSelectPerson }) {
                                         </div>
                                     </div>
                                     <div class="graphed-compare-title">${d.lastFilm.name}</div>
-                                    <div class="graphed-compare-date">Watched ${d.lastEntry ? d.lastEntry.date : '—'}</div>
+                                    <div class="graphed-compare-date">Logged ${d.lastEntry ? (d.lastEntry.logged || d.lastEntry.date) : '—'}</div>
                                     <div class="graphed-compare-stars">${stars(d.lastEntry ? d.lastEntry.rating : d.lastFilm.rating)}</div>
                                 ` : html`
                                     <div style=${{ color: 'var(--mut)', padding: '24px 0' }}>No dated entries</div>
@@ -2279,7 +2299,7 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
             ${selectedPerson && html`
                 <${PersonModal}
                     person=${selectedPerson}
-                    films=${M.films}
+                    films=${M.films.filter(f => !f.isTv)}
                     onClose=${() => setSelectedPerson(null)}
                     onSelectFilm=${setSelectedFilm}
                 />
@@ -2980,7 +3000,7 @@ function App() {
             // 4. Any remaining watched films
             watchedFilms.forEach(f => priorityKeys.add(f.key));
 
-            const filmsToEnrich = watchedFilms.filter(f => priorityKeys.has(f.key)).slice(0, 300);
+            const filmsToEnrich = watchedFilms.filter(f => priorityKeys.has(f.key));
             let initialMeta = {};
 
             if (filmsToEnrich.length) {

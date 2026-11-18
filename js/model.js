@@ -588,7 +588,7 @@ async function enrichTMDB(films, key, onP) {
                                     role: c.job
                                 }))
                             ),
-                            cast: ((d.credits || {}).cast || []).slice(0, 15).map(c => ({
+                            cast: ((d.credits || {}).cast || []).map(c => ({
                                 n: c.name,
                                 g: c.gender,
                                 photo: c.profile_path ? 'https://image.tmdb.org/t/p/w185' + c.profile_path : null,
@@ -618,7 +618,7 @@ async function enrichTMDB(films, key, onP) {
                                     id: c.id,
                                     role: 'Director'
                                 })),
-                            cast: ((d.credits || {}).cast || []).slice(0, 15).map(c => ({
+                            cast: ((d.credits || {}).cast || []).map(c => ({
                                 n: c.name,
                                 g: c.gender,
                                 photo: c.profile_path ? 'https://image.tmdb.org/t/p/w185' + c.profile_path : null,
