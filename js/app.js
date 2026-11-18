@@ -406,26 +406,25 @@ function PersonModal({ person, onClose, films, entries, onSelectFilm }) {
         }).sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }, [person, films]);
 
-    const directedWorks = personWorks.filter(f =>
-        (f.directors || []).some(d => matchesPerson(d, 'name'))
-    );
-    const actedWorks = personWorks.filter(f =>
-        (f.cast || []).some(c => matchesPerson(c, 'n'))
-    );
-
     const ratedWorks = personWorks.filter(f => f.rating != null);
     const userAvg = ratedWorks.length ? avg(ratedWorks.map(f => f.rating)) : null;
     const watchedYears = useMemo(() => [...new Set((entries || [])
-        .filter(e => e.date && personWorks.some(f => f.key === e.key))
-        .map(e => e.date.slice(0, 4))
+        .filter(e => (e.logged || e.date) && personWorks.some(f => f.key === e.key))
+        .map(e => (e.logged || e.date).slice(0, 4))
         .filter(Boolean))].sort((a, b) => b.localeCompare(a)), [entries, personWorks]);
     const displayedWorks = useMemo(() => {
         if (!watchedYear) return personWorks;
         const keys = new Set((entries || [])
-            .filter(e => e.date && e.date.startsWith(watchedYear))
+            .filter(e => (e.logged || e.date) && (e.logged || e.date).startsWith(watchedYear))
             .map(e => e.key));
         return personWorks.filter(f => keys.has(f.key));
     }, [entries, personWorks, watchedYear]);
+    const directedWorks = displayedWorks.filter(f =>
+        (f.directors || []).some(d => matchesPerson(d, 'name'))
+    );
+    const actedWorks = displayedWorks.filter(f =>
+        (f.cast || []).some(c => matchesPerson(c, 'n'))
+    );
 
     const photoSrc = (details && details.photo) || person.photo;
 
@@ -447,13 +446,9 @@ function PersonModal({ person, onClose, films, entries, onSelectFilm }) {
                         <h2 class="person-name-big">${person.n}</h2>
                         
                         <div style=${{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '6px', fontSize: '14px', color: 'var(--mut)' }}>
-<<<<<<< HEAD
-                            <span><strong>${personWorks.length}</strong> titles watched</span>
+                            <span><strong>${displayedWorks.length}</strong> titles watched${watchedYear ? ` in ${watchedYear}` : ''}</span>
                             ${directedWorks.length > 0 && html`<span><strong>${directedWorks.length}</strong> directed</span>`}
                             ${actedWorks.length > 0 && html`<span><strong>${actedWorks.length}</strong> acted</span>`}
-=======
-                            <span><strong>${displayedWorks.length}</strong> titles watched${watchedYear ? ` in ${watchedYear}` : ''}</span>
->>>>>>> 0a20047f2531cafcbacbe7a037835ad53b37b6b0
                             ${userAvg != null && html`<span>Your average: <strong style=${{ color: COL.g }}>${fmt(userAvg)}★</strong></span>`}
                             ${details && details.birthday && html`<span>Born: ${details.birthday}</span>`}
                             ${details && details.placeOfBirth && html`<span>Birthplace: ${details.placeOfBirth}</span>`}
@@ -2477,12 +2472,8 @@ function Dashboard({ M0, initialMeta = {}, onClear }) {
             ${selectedPerson && html`
                 <${PersonModal}
                     person=${selectedPerson}
-<<<<<<< HEAD
                     films=${M.films.filter(f => !f.isTv)}
-=======
-                    films=${M.films}
                     entries=${M.entries}
->>>>>>> 0a20047f2531cafcbacbe7a037835ad53b37b6b0
                     onClose=${() => setSelectedPerson(null)}
                     onSelectFilm=${setSelectedFilm}
                 />
@@ -3186,16 +3177,11 @@ function App() {
             watchedFilms.forEach(f => priorityKeys.add(f.key));
             (M.profile.favoriteFilms || []).forEach(f => priorityKeys.add(f.key));
 
-<<<<<<< HEAD
-            const filmsToEnrich = watchedFilms.filter(f => priorityKeys.has(f.key));
-=======
             const favoriteKeys = new Set((M.profile.favoriteFilms || []).map(f => f.key));
             const filmsToEnrich = watchedFilms
                 .slice()
                 .sort((a, b) => Number(favoriteKeys.has(b.key)) - Number(favoriteKeys.has(a.key)))
-                .filter(f => priorityKeys.has(f.key))
-                .slice(0, 16);
->>>>>>> 0a20047f2531cafcbacbe7a037835ad53b37b6b0
+                .filter(f => priorityKeys.has(f.key));
             let initialMeta = {};
 
             if (filmsToEnrich.length) {
@@ -3208,9 +3194,10 @@ function App() {
                             resolved = true;
                             resolve();
                         }
-                    }, 10000);
+                    }, 30000);
 
                     enrichTMDB(filmsToEnrich, TMDB_KEY, (done, metaBatch) => {
+                        if (resolved) return;
                         initialMeta = metaBatch;
                         const pct = Math.min(94, 35 + Math.round((done / filmsToEnrich.length) * 59));
                         setSt(s => ({

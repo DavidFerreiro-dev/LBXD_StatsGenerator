@@ -10,11 +10,20 @@ const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
 const dayN = s => Math.floor(Date.parse(s + 'T00:00:00Z') / 864e5);
 const wd = s => (new Date(s + 'T00:00:00Z').getUTCDay() + 6) % 7;
 
+const effectiveEntryDate = e => e && (e.logged || e.date) || '';
+
+const entryYear = e => {
+    const value = effectiveEntryDate(e);
+    const match = String(value).match(/\b(\d{4})[-/]\d{1,2}[-/]\d{1,2}\b/) ||
+        String(value).match(/^(\d{4})/);
+    return match ? +match[1] : null;
+};
+
 const entryChronology = e => {
-    const value = e && (e.logged || e.date);
+    const value = effectiveEntryDate(e);
     if (!value) return '';
     const parsed = Date.parse(String(value));
-    if (!Number.isNaN(parsed)) return String(parsed).padStart(13, '0');
+    if (!Number.isNaN(parsed)) return String(parsed).padStart(16, '0');
     return String(value);
 };
 
@@ -55,12 +64,12 @@ function applyFilters(M, q) {
         }
 
         if (q.rewatched && !isRew(M, f)) return false;
-        if (yr && !M.entries.some(e => e.key === f.key && e.date && +e.date.slice(0, 4) === yr)) return false;
+        if (yr && !M.entries.some(e => e.key === f.key && entryYear(e) === yr)) return false;
         return true;
     });
 
     const keys = new Set(films.map(f => f.key));
-    let entries = M.entries.filter(e => keys.has(e.key) && (!yr || (e.date && +e.date.slice(0, 4) === yr)));
+    let entries = M.entries.filter(e => keys.has(e.key) && (!yr || entryYear(e) === yr));
     if (q.rewatched) entries = entries.filter(e => e.isRewatch || e.rewatch);
 
     return {
@@ -324,7 +333,7 @@ const YearStats = {
     viewings: (M, y) => {
         const m = fmap(M);
         return M.entries.filter(e => {
-            if (!e.date || +e.date.slice(0, 4) !== y) return false;
+            if (entryYear(e) !== y) return false;
             const f = m.get(e.key);
             return !f || !f.isTv;
         });
@@ -414,14 +423,15 @@ const YearStats = {
     },
     habits: (M, y) => {
         const vs = YearStats.viewings(M, y);
-        const wdc = tally(vs, e => wd(e.date));
-        const moc = tally(vs, e => +e.date.slice(5, 7) - 1);
+        const dates = vs.map(e => effectiveEntryDate(e)).filter(Boolean);
+        const wdc = tally(dates, d => wd(d.slice(0, 10)));
+        const moc = tally(dates, d => +d.slice(5, 7) - 1);
         const weekday = DIA.map((l, i) => ({ l, v: wdc.get(i) || 0 }));
         const monthOfYear = MES.map((l, i) => ({ l, v: moc.get(i) || 0 }));
         const favWeekday = weekday.slice().sort((a, b) => b.v - a.v)[0] || { l: '—', v: 0 };
         const favMonth = monthOfYear.slice().sort((a, b) => b.v - a.v)[0] || { l: '—', v: 0 };
 
-        const dayCounts = tally(vs, e => e.date);
+        const dayCounts = tally(dates, d => d.slice(0, 10));
         const days = [...dayCounts.entries()].sort((a, b) => b[1] - a[1]);
         const recordDay = days[0] || ['—', 0];
 
